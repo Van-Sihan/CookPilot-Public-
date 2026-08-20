@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>쿡파일럿 CookPilot — 손은 요리에, 레시피는 쿡파일럿에</title>
+<meta name="description" content="말로 따라 하는 AI 요리 비서. 젖은 손으로 화면을 만질 일이 없습니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Noto+Serif+KR:wght@500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<style>
+/* =====================================================================
+   어두운 판. 밝은 판과 같은 숯불 팔레트지만 역할이 바뀐다.
+   검정 위에서 #B94432 는 3.7:1 이라 글자로 못 쓴다. 단추 바탕으로만 쓴다.
+   글자용 강조는 #E45B32 (5.5:1), 하이라이트는 #F6C453 (12.2:1).
+   ===================================================================== */
+:root {
+  --bg:#0B0A09;        /* 따뜻한 검정. 순수 #000 보다 종이 느낌이 남는다 */
+  --bg-2:#131110;      /* 카드 바탕 */
+  --bg-3:#1A1716;      /* 한 단계 더 뜬 면 */
+  --line:#2A2523;      /* 어두운 경계선 */
+  --line-2:#3D3633;    /* 눈에 보이는 경계선 */
+  --paper:#F7F0E3;     /* 본문 글자. 순백 대신 크림이라 눈이 편하다 (17.5:1) */
+  --paper-2:#A79C92;   /* 보조 글자 (7.4:1) */
+  --paper-3:#8B8078;   /* 흐린 글자 (5.1:1) */
+  --fire-1:#B94432;    /* 단추·띠 바탕 전용. 글자색으로 쓰지 말 것 */
+  --fire-2:#E45B32;    /* 글자용 강조 (5.5:1) */
+  --fire-3:#F6C453;    /* 하이라이트 (12.2:1) */
+
+  /* 라틴 글자는 Instrument Serif, 한글은 Noto Serif KR 이 받는다 */
+  --serif:'Instrument Serif', 'Noto Serif KR', serif;
+  --sans:'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono:'Roboto Mono', monospace;
+  --pad:clamp(20px, 5vw, 48px);
+  --maxw:1180px;
+}
+*, *::before, *::after { box-sizing:border-box; }
+html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+body {
+  margin:0; background:var(--bg); color:var(--paper);
+  font-family:var(--sans); font-size:16px; line-height:1.75;
+  font-variant-numeric:lining-nums tabular-nums; -webkit-font-smoothing:antialiased;
+}
+img, svg { display:block; max-width:100%; }
+a { color:inherit; text-decoration:none; }
+ul { margin:0; padding:0; list-style:none; }
+h1, h2, h3 {
+  font-family:var(--serif); font-weight:600; margin:0;
+  word-break:keep-all; text-wrap:balance;
+}
+p, li, summary { word-break:keep-all; }
+.wrap { max-width:var(--maxw); margin:0 auto; padding:0 var(--pad); position:relative; z-index:1; }
+
+/* =====================================================================
+   잉걸불 후광. 숯이 아래에서 은은히 타는 느낌을 배경에 깐다.
+   그림자(box-shadow)가 아니라 아주 옅은 방사형 그라데이션이라
+   면이 떠 보이지 않고 빛만 번진다.
+   ===================================================================== */
+.glow { position:relative; overflow:hidden; isolation:isolate; }
+.glow::before {
+  content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+}
+/* 히어로 — 오른쪽 대화 카드 뒤에서 번지는 불빛 */
+.hero.glow::before {
+  background:
+    radial-gradient(52rem 34rem at 76% 22%, rgba(228,91,50,.17), transparent 62%),
+    radial-gradient(38rem 26rem at 12% 78%, rgba(185,68,50,.09), transparent 64%);
+}
+/* 큰 문장 — 글자 뒤에서 위로 올라오는 열기 */
+.statement.glow::before {
+  background:radial-gradient(46rem 24rem at 50% 88%, rgba(228,91,50,.13), transparent 66%);
+}
+/* 기능 — 위쪽에서 아주 옅게 */
+.features.glow::before {
+  background:radial-gradient(56rem 26rem at 50% 0%, rgba(246,196,83,.055), transparent 64%);
+}
+/* 요금제 — 가운데 추천 카드 뒤 */
+.pricing.glow::before {
+  background:radial-gradient(40rem 28rem at 50% 46%, rgba(228,91,50,.13), transparent 62%);
+}
+/* 마무리 — 아래 파형에서 불이 피어오르듯 */
+.cta.glow::before {
+  background:radial-gradient(44rem 30rem at 50% 108%, rgba(228,91,50,.20), transparent 62%);
+}
+
+/* 구역을 나누는 선도 가운데만 진하고 양끝은 사라지게 */
+.rule, .block, .features, .pricing, .faq-sec, .cta, footer, header { border-image:none; }
+.rule {
+  height:1px; background:linear-gradient(90deg, transparent, var(--line) 18%,
+    var(--line-2) 50%, var(--line) 82%, transparent);
+}
+.block, .features, .pricing, .faq-sec, .cta { border-top:0; }
+.block::after, .features::after, .pricing::after, .faq-sec::after, .cta::after {
+  content:""; position:absolute; top:0; left:0; right:0; height:1px; z-index:2;
+  background:linear-gradient(90deg, transparent, var(--line) 20%,
+    var(--line-2) 50%, var(--line) 80%, transparent);
+}
+.block, .features, .pricing, .faq-sec, .cta { position:relative; }
+.rule { border:0; border-top:1px solid var(--line); margin:0; }
+
+.eyebrow {
+  display:block; font-size:11.5px; font-weight:600; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--paper-2); margin:0 0 20px;
+}
+.eyebrow.hot { color:var(--fire-2); }
+
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  min-height:52px; padding:0 30px; border-radius:2px;
+  font-size:15px; font-weight:700; letter-spacing:-.01em;
+  border:1px solid transparent; cursor:pointer;
+  transition:background .18s, color .18s, border-color .18s;
+}
+.btn-fill {
+  background:linear-gradient(180deg, #C94C38 0%, #B94432 52%, #A63B2B 100%);
+  color:#FFFFFF;
+}
+.btn-fill:hover { background:linear-gradient(180deg, #D6553F 0%, #C44936 52%, #B23F2D 100%); }
+.btn-line { border-color:var(--line-2); color:var(--paper); }
+.btn-line:hover { border-color:var(--fire-2); color:var(--fire-2); }
+.btn-sm { min-height:42px; padding:0 20px; font-size:13.5px; }
+
+/* ---------- 알림 띠 ---------- */
+.band {
+  background:linear-gradient(180deg, #C24A36 0%, #B94432 60%, #AC3E2E 100%);
+  color:#FFFFFF; text-align:center;
+  font-size:12px; font-weight:700; letter-spacing:.14em;
+  text-transform:uppercase; padding:11px var(--pad);
+}
+/* ---------- 머리말 ---------- */
+header {
+  position:relative; border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, #100E0D 0%, var(--bg) 100%);
+}
+.nav { display:flex; align-items:center; justify-content:space-between; height:76px; }
+.brand { display:flex; align-items:center; gap:11px; }
+.brand .name {
+  font-family:var(--serif); font-size:23px; letter-spacing:.01em;
+  line-height:1; padding-top:3px;
+}
+.nav-links { display:flex; gap:32px; }
+.nav-links a { font-size:13.5px; font-weight:500; color:var(--paper-2); letter-spacing:.02em; }
+.nav-links a:hover { color:var(--paper); }
+.nav-right { display:flex; align-items:center; gap:16px; }
+.nav-right .login { font-size:13.5px; font-weight:500; color:var(--paper-2); }
+.nav-toggle { display:none; width:48px; height:48px; margin-right:-14px; background:none; border:0; cursor:pointer; }
+.nav-toggle span { display:block; width:20px; height:1.5px; background:var(--paper); margin:5px auto; }
+
+/* ---------- 히어로 ---------- */
+.hero { padding:clamp(56px, 8vw, 96px) 0 clamp(60px, 8vw, 100px); }
+.hero-grid { display:grid; grid-template-columns:1fr; gap:clamp(40px, 5vw, 64px); align-items:center; }
+.hero h1 {
+  font-size:clamp(2.5rem, 6.1vw, 4.15rem); line-height:1.1;
+  letter-spacing:-.03em; font-weight:600; margin:0 0 26px;
+}
+.hero h1 em { font-style:normal; color:var(--fire-2); }
+.hero .lead { font-size:clamp(16px, 1.5vw, 17.5px); color:var(--paper-2); margin:0 0 34px; max-width:31em; }
+.hero-cta { display:flex; flex-wrap:wrap; gap:12px; }
+.proof { display:flex; align-items:center; gap:10px; margin:26px 0 0; font-size:13px; color:var(--paper-2); }
+.proof .flame { display:inline-flex; gap:4px; }
+.proof .flame span { width:5px; height:5px; border-radius:50%; background:var(--fire-3); }
+.proof .flame span:nth-child(2) { background:var(--fire-2); }
+.proof .flame span:nth-child(3) { background:var(--fire-1); }
+.hero-art { position:relative; }
+.hero-art { position:relative; }
+.hero-art::after {
+  content:""; position:absolute; inset:-14% -10%; z-index:0; pointer-events:none;
+  background:radial-gradient(closest-side, rgba(228,91,50,.20), transparent 72%);
+}
+.hero-art .frame {
+  position:relative; z-index:1;
+  border:1px solid var(--line-2);
+  background:linear-gradient(168deg, #1B1715 0%, #141110 44%, #0F0D0C 100%);
+  padding:clamp(26px, 3vw, 40px) clamp(20px, 3vw, 36px);
+}
+.hero-wave { display:flex; justify-content:center; }
+.frame-head {
+  display:flex; align-items:center; gap:9px; padding-bottom:16px;
+  border-bottom:1px solid var(--line); margin-bottom:clamp(24px, 3vw, 38px);
+}
+.fh-live { width:6px; height:6px; border-radius:50%; background:var(--fire-2);
+  animation:blink 1.6s ease-in-out infinite; }
+.fh-t { font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--paper-2); }
+.fh-r { margin-left:auto; font-family:var(--mono); font-size:11.5px; color:var(--paper-3); }
+.frame .talk { display:flex; flex-direction:column; gap:15px; }
+.frame-foot {
+  margin-top:20px; padding-top:15px; border-top:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+}
+.hero-say {
+  margin:clamp(20px, 3vw, 32px) 0 0; text-align:center;
+  font-family:var(--serif); font-size:clamp(17px, 1.7vw, 20px); color:var(--paper);
+}
+.hero-cap {
+  margin:22px 0 0; text-align:center; font-size:12px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--paper-3);
+}
+
+/* ---------- 큰 문장 구역 ---------- */
+.statement { padding:clamp(72px, 10vw, 128px) 0; text-align:center; }
+.statement h2 {
+  font-size:clamp(2.4rem, 6.6vw, 4.4rem); line-height:1.1;
+  letter-spacing:-.03em; margin:0 auto 20px; max-width:16em;
+}
+.statement p { margin:0 auto; max-width:30em; color:var(--paper-2); font-size:16.5px; }
+
+/* ---------- 번갈아 놓인 덩어리 ---------- */
+.blocks { display:flex; flex-direction:column; }
+/* 격자 칸은 기본값이 min-width:auto 라 안쪽 내용보다 작아지지 못한다.
+   좁은 화면에서 칸이 화면 밖으로 삐져나가는 원인이므로 0 으로 풀어 준다 */
+.block > *, .hero-grid > *, .steps li > * { min-width:0; }
+.block {
+  display:grid; grid-template-columns:1fr; gap:clamp(30px, 4vw, 60px);
+  align-items:center; padding:clamp(52px, 7vw, 88px) 0; border-top:1px solid var(--line);
+}
+.bl-text h3 { font-size:clamp(1.5rem, 2.9vw, 2.1rem); letter-spacing:-.025em; margin:0 0 16px; }
+.bl-lead { margin:0 0 24px; color:var(--paper-2); font-size:16px; max-width:34em; }
+.bl-list { display:flex; flex-direction:column; gap:12px; }
+.bl-list li { position:relative; padding-left:20px; font-size:15px; color:var(--paper); }
+.bl-list li::before {
+  content:""; position:absolute; left:0; top:.66em; width:7px; height:2px; background:var(--fire-2);
+}
+
+/* 삽화 공통. 평면 대신 위가 살짝 밝은 면으로 두께감을 만든다 */
+.art {
+  position:relative; border:1px solid var(--line-2); padding:22px;
+  background:linear-gradient(170deg, #191614 0%, #131110 46%, #100E0D 100%);
+}
+/* 윗변에 머리카락 같은 밝은 선 하나. 종이 두께처럼 보인다 */
+.art::before, .frame::before, .plan::before {
+  content:""; position:absolute; top:-1px; left:12%; right:12%; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(247,240,227,.20), transparent);
+}
+
+/* 삽화 · 대화 */
+.art-talk { display:flex; flex-direction:column; gap:14px; }
+.turn { display:flex; flex-direction:column; gap:5px; }
+.turn .who { font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--paper-3); }
+.turn .bubble { margin:0; font-size:14.5px; line-height:1.6; padding:10px 14px; border-radius:2px; max-width:90%; }
+.turn.me { align-items:flex-end; }
+.turn.me .bubble { background:var(--bg-3); border:1px solid var(--line); }
+.turn.ai .bubble { background:var(--fire-1); color:#FFFFFF; }
+.turn.ai .who { color:var(--fire-2); }
+.chip {
+  display:inline-flex; align-items:center; gap:7px; align-self:flex-start;
+  font-size:11.5px; color:var(--paper-2); border:1px solid var(--line-2);
+  padding:3px 10px; border-radius:999px;
+}
+.chip .dot { width:5px; height:5px; border-radius:50%; background:var(--fire-3); }
+.cut { font-size:11.5px; color:var(--paper-3); align-self:flex-end; }
+.art-foot {
+  margin-top:6px; padding-top:14px; border-top:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+}
+.listening { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--paper-2); }
+.listening .live { width:6px; height:6px; border-radius:50%; background:var(--fire-2); animation:blink 1.6s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+.bar { transform-origin:center bottom; animation:breathe 1.25s ease-in-out infinite alternate; }
+@keyframes breathe { from{transform:scaleY(.55)} to{transform:scaleY(1)} }
+
+/* 삽화 · 단계 */
+.art-head { display:flex; align-items:baseline; gap:12px; padding-bottom:16px; border-bottom:1px solid var(--line); margin-bottom:6px; }
+.art-head .src { font-family:var(--mono); font-size:11px; color:var(--fire-2); letter-spacing:.04em; }
+.art-head .ttl { font-family:var(--serif); font-size:19px; }
+.steps li {
+  display:grid; grid-template-columns:auto 1fr auto; gap:4px 14px;
+  align-items:baseline; padding:14px 12px; border-bottom:1px solid var(--line);
+  margin:0 -12px;
+}
+.steps li:last-child { border-bottom:0; }
+.steps .n { grid-column:1; grid-row:1; font-family:var(--mono); font-size:11.5px; color:var(--paper-3); }
+.steps .t { grid-column:2; grid-row:1; font-size:15px; font-weight:600; }
+.steps .d { grid-column:2; grid-row:2; font-size:13px; color:var(--paper-2); }
+.steps .tm { grid-column:3; grid-row:1 / span 2; align-self:center;
+  font-family:var(--mono); font-size:13.5px; color:var(--fire-3); }
+.steps li.on { background:var(--bg-3); }
+.steps li.on .t { color:var(--fire-2); }
+
+/* 삽화 · 서재 */
+.art-shelf { display:flex; flex-direction:column; gap:0; }
+.shelf-row { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; padding:0 4px 12px; }
+.bk {
+  aspect-ratio:3/4; border:1px solid var(--line-2); background:var(--bg-3);
+  display:flex; align-items:flex-end; padding:12px;
+  font-family:var(--serif); font-size:15px; line-height:1.3;
+  background-image:linear-gradient(to top, rgba(228,91,50,.16), transparent 58%);
+}
+.bk.sk { align-items:center; justify-content:center; color:var(--paper-3);
+  background-image:none; border-style:dashed; font-size:22px; }
+.shelf-bar { height:3px; background:var(--line-2); margin-bottom:20px; }
+.shelf-say { margin:6px 0 0; text-align:center; font-family:var(--serif); font-size:17px; color:var(--fire-3); }
+
+/* ---------- 기능 그리드 (3 x 2) ---------- */
+.features { padding:clamp(56px, 8vw, 92px) 0; border-top:1px solid var(--line); }
+.feats {
+  display:grid; grid-template-columns:1fr; gap:1px;
+  background:var(--line); border:1px solid var(--line);
+}
+.feat {
+  position:relative; background:var(--bg); padding:clamp(26px, 3.2vw, 36px);
+  transition:background .25s ease; overflow:hidden;
+}
+/* 마우스를 올리면 아이콘 자리에서 잉걸불이 번진다 */
+.feat::before {
+  content:""; position:absolute; inset:0; opacity:0; transition:opacity .3s ease;
+  background:radial-gradient(22rem 14rem at 14% 0%, rgba(228,91,50,.15), transparent 66%);
+}
+.feat:hover::before { opacity:1; }
+.feat > * { position:relative; z-index:1; }
+.feat-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.feat-ico {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:44px; height:44px; border:1px solid var(--line-2); border-radius:3px;
+  color:var(--fire-2);
+  background:radial-gradient(closest-side at 50% 120%, rgba(228,91,50,.22), transparent 78%);
+  transition:color .25s ease, border-color .25s ease;
+}
+.feat:hover .feat-ico { color:var(--fire-3); border-color:#5A4A40; }
+.feat-n { font-family:var(--mono); font-size:11.5px; color:var(--paper-3); letter-spacing:.08em; }
+.feat h3 { font-size:19px; letter-spacing:-.02em; margin:20px 0 10px; }
+.feat p { margin:0; font-size:14.5px; color:var(--paper-2); line-height:1.72; }
+
+/* ---------- 삽화 · 장보기 ---------- */
+.cart li {
+  display:flex; align-items:center; gap:12px;
+  padding:13px 12px; margin:0 -12px; border-bottom:1px solid var(--line); font-size:15px;
+}
+.cart li:last-child { border-bottom:0; }
+.cart .bx { width:14px; height:14px; flex:0 0 14px; border:1px solid var(--line-2); border-radius:2px; }
+.cart .nm { flex:1; }
+.cart .st { font-size:12px; letter-spacing:.04em; color:var(--paper-3); }
+.cart li.have .nm { color:var(--paper-3); text-decoration:line-through; }
+.cart li.have .bx { background:var(--line-2); border-color:var(--line-2); }
+.cart li.need .bx { border-color:var(--fire-2); }
+.cart li.need .st { color:var(--fire-2); }
+.cart-foot {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-top:18px; padding-top:16px; border-top:1px solid var(--line);
+  font-size:13px; color:var(--paper-2);
+}
+.cart-go { color:var(--fire-3); font-weight:600; }
+
+/* ---------- 요금제 ---------- */
+.pricing { padding:clamp(64px, 9vw, 104px) 0; border-top:1px solid var(--line); }
+.sec-head { text-align:center; max-width:34em; margin:0 auto clamp(38px, 5vw, 56px); }
+.sec-head h2 { font-size:clamp(2rem, 4.4vw, 3.1rem); line-height:1.16; letter-spacing:-.03em; margin:0 0 14px; }
+.sec-head p { margin:0; color:var(--paper-2); }
+.plans { display:grid; grid-template-columns:1fr; gap:16px; align-items:start; }
+.plan {
+  position:relative; border:1px solid var(--line-2); padding:clamp(26px, 3vw, 34px);
+  background:linear-gradient(170deg, #181514 0%, #121010 52%, #0F0D0C 100%);
+}
+.plan-rec {
+  border-color:var(--fire-1);
+  background:
+    radial-gradient(28rem 16rem at 50% -8%, rgba(228,91,50,.16), transparent 66%),
+    linear-gradient(170deg, #201917 0%, #16120F 52%, #110E0D 100%);
+}
+.plan-rec::before { background:linear-gradient(90deg, transparent, rgba(246,196,83,.34), transparent); }
+.plan-badge {
+  position:absolute; top:-1px; right:clamp(26px, 3vw, 34px); background:var(--fire-1);
+  color:#FFFFFF; font-size:10.5px; font-weight:700; letter-spacing:.06em; padding:5px 11px;
+}
+.plan h3 { font-family:var(--sans); font-size:13px; font-weight:700; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--paper-2); margin:0 0 16px; }
+.price { margin:0 0 24px; display:flex; align-items:baseline; gap:7px; }
+.price-num { font-family:var(--mono); font-feature-settings:"zero" 0;
+  font-size:clamp(30px, 3.4vw, 38px); font-weight:500; letter-spacing:-.03em; }
+.price-per { font-size:13.5px; color:var(--paper-3); }
+.plan ul { margin:0 0 28px; display:flex; flex-direction:column; gap:11px; }
+.plan li { font-size:14.5px; color:var(--paper-2); padding-left:19px; position:relative; }
+.plan li::before { content:""; position:absolute; left:0; top:.66em; width:7px; height:2px; background:var(--fire-2); }
+.plan .btn { width:100%; }
+.plan-foot { margin:26px 0 0; text-align:center; font-size:13px; color:var(--paper-3); }
+
+/* ---------- FAQ ---------- */
+.faq-sec { padding:clamp(64px, 9vw, 104px) 0; border-top:1px solid var(--line); }
+.faq { max-width:800px; margin:0 auto; }
+details { border-top:1px solid var(--line); }
+details:last-of-type { border-bottom:1px solid var(--line); }
+summary {
+  list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between;
+  gap:20px; padding:24px 2px; min-height:48px;
+  font-family:var(--serif); font-size:19px; letter-spacing:-.015em;
+}
+summary::-webkit-details-marker { display:none; }
+summary i { position:relative; width:13px; height:13px; flex:0 0 13px; }
+summary i::before, summary i::after {
+  content:""; position:absolute; left:0; top:6px; width:13px; height:1.5px;
+  background:var(--fire-2); transition:transform .2s ease;
+}
+summary i::after { transform:rotate(90deg); }
+details[open] summary i::after { transform:rotate(0); }
+.ans { padding:0 2px 26px; }
+.ans p { margin:0; color:var(--paper-2); font-size:15.5px; max-width:58em; }
+
+/* ---------- 마무리 ---------- */
+.cta { padding:clamp(72px, 10vw, 120px) 0 0; border-top:1px solid var(--line); text-align:center; }
+.cta h2 { font-size:clamp(2.2rem, 5.6vw, 3.9rem); line-height:1.12; letter-spacing:-.03em; margin:0 0 18px; }
+.cta p { margin:0 0 32px; color:var(--paper-2); }
+.cta .wave { display:flex; justify-content:center; margin-top:clamp(48px, 7vw, 76px); }
+
+/* ---------- 꼬리말 ---------- */
+footer { border-top:1px solid var(--line); padding:44px 0 54px; margin-top:clamp(48px, 7vw, 76px); }
+.foot { display:flex; flex-direction:column; gap:26px; justify-content:space-between; }
+.foot .brand .name { font-size:19px; }
+.foot .copy { margin:12px 0 0; font-size:13px; color:var(--paper-3); }
+.foot nav { display:flex; flex-wrap:wrap; gap:8px 26px; }
+.foot nav a { font-size:13.5px; color:var(--paper-2); }
+.foot nav a:hover { color:var(--fire-2); }
+
+/* ===================== 반응형 ===================== */
+@media (max-width:900px) {
+  .nav-links, .nav-right .login { display:none; }
+  .nav-toggle { display:block; }
+}
+@media (min-width:641px) {
+  .foot { flex-direction:row; align-items:flex-end; }
+  .feats { grid-template-columns:repeat(2, 1fr); }
+}
+@media (min-width:901px) {
+  .plans { grid-template-columns:repeat(3, 1fr); }
+}
+@media (min-width:1025px) {
+  .hero-grid { grid-template-columns:1fr 1fr; }
+  .feats { grid-template-columns:repeat(3, 1fr); }
+  .block { grid-template-columns:1fr 1fr; gap:clamp(48px, 6vw, 90px); }
+  .block.text-right .bl-text { order:2; }
+}
+@media (max-width:900px) {
+  .plans { display:flex; flex-direction:column; }
+  .plan-rec { order:-1; }
+}
+@media (prefers-reduced-motion:reduce) {
+  *, *::before, *::after { animation:none !important; transition:none !important; }
+  html { scroll-behavior:auto; }
+}
+</style>
+</head>
+<body>
+
+<div class="band">베타 참여자 모집 중 · 지금은 무료</div>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#"><svg class="mark" width="30" height="30" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="ldk" gradientUnits="userSpaceOnUse" x1="0" y1="114" x2="0" y2="76"><stop offset="0%" stop-color="#B94432"/><stop offset="45%" stop-color="#E45B32"/><stop offset="100%" stop-color="#F6C453"/></linearGradient></defs><path d="M30 34h68v14a24 24 0 0 1-24 24H54a24 24 0 0 1-24-24z" fill="#B94432"/><rect x="24" y="25" width="80" height="9" rx="4.5" fill="#B94432"/><path d="M104 36h10a6 6 0 0 1 0 12h-10z" fill="#B94432"/><path d="M24 36H14a6 6 0 0 0 0 12h10z" fill="#B94432"/><rect x="18.25" y="107.40" width="5.5" height="6.60" rx="2.75" fill="url(#ldk)"/><rect x="25.42" y="106.76" width="5.5" height="7.24" rx="2.75" fill="url(#ldk)"/><rect x="32.58" y="96.66" width="5.5" height="17.34" rx="2.75" fill="url(#ldk)"/><rect x="39.75" y="95.24" width="5.5" height="18.76" rx="2.75" fill="url(#ldk)"/><rect x="46.92" y="88.44" width="5.5" height="25.56" rx="2.75" fill="url(#ldk)"/><rect x="54.08" y="79.35" width="5.5" height="34.65" rx="2.75" fill="url(#ldk)"/><rect x="61.25" y="86.77" width="5.5" height="27.23" rx="2.75" fill="url(#ldk)"/><rect x="68.42" y="85.54" width="5.5" height="28.46" rx="2.75" fill="url(#ldk)"/><rect x="75.58" y="83.09" width="5.5" height="30.91" rx="2.75" fill="url(#ldk)"/><rect x="82.75" y="94.91" width="5.5" height="19.09" rx="2.75" fill="url(#ldk)"/><rect x="89.92" y="99.85" width="5.5" height="14.15" rx="2.75" fill="url(#ldk)"/><rect x="97.08" y="105.30" width="5.5" height="8.70" rx="2.75" fill="url(#ldk)"/><rect x="104.25" y="107.40" width="5.5" height="6.60" rx="2.75" fill="url(#ldk)"/></svg><span class="name">CookPilot</span></a>
+    <nav class="nav-links">
+      <a href="#features">기능</a><a href="#how">사용 방법</a><a href="#pricing">요금제</a><a href="#faq">자주 묻는 질문</a>
+    </nav>
+    <div class="nav-right">
+      <a class="login" href="#">로그인</a>
+      <a class="btn btn-fill btn-sm" href="#">무료로 시작하기</a>
+      <button class="nav-toggle" aria-label="메뉴 열기"><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<section class="hero glow">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">음성으로 따라 하는 AI 요리 비서</span>
+      <h1>손은 요리에,<br>레시피는<br><em>쿡파일럿</em>에.</h1>
+      <p class="lead">
+        재료가 묻은 손으로 화면을 만질 일이 없습니다.
+        다음 단계도, 분량도, 타이머도 말로 부르면 됩니다.
+      </p>
+      <div class="hero-cta">
+        <a class="btn btn-fill" href="#">무료로 시작하기</a>
+        <a class="btn btn-line" href="#">1분 시연 보기</a>
+      </div>
+      <p class="proof"><span class="flame"><span></span><span></span><span></span></span>카드 등록 없이 바로 · 설치할 앱 없음</p>
+    </div>
+    <div class="hero-art">
+      <div class="frame">
+        <div class="frame-head">
+          <span class="fh-live"></span><span class="fh-t">쿡파일럿</span>
+          <span class="fh-r">토마토 파스타 · 3/7 단계</span>
+        </div>
+        <div class="talk">
+          <div class="turn me"><span class="who">나</span>
+            <p class="bubble">다음 단계 알려줘</p></div>
+          <div class="turn ai"><span class="who">쿡파일럿</span>
+            <p class="bubble">중불로 줄이고 3분만 더 볶아 주세요. 타이머 맞춰 둘게요.</p>
+            <span class="chip"><span class="dot"></span>타이머 3:00 시작됨</span></div>
+          <div class="turn me"><span class="who">나</span>
+            <p class="bubble">아 잠깐, 소금은 얼마나?</p>
+            <span class="cut">— 말하는 중에 끊어도 됩니다</span></div>
+          <div class="turn ai"><span class="who">쿡파일럿</span>
+            <p class="bubble">반 큰술이요. 2인분 기준입니다.</p></div>
+        </div>
+        <div class="frame-foot">
+          <span class="listening"><span class="live"></span>듣고 있습니다</span>
+          <svg width="52.3" height="24" viewBox="0 0 52.3 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="wdc" gradientUnits="userSpaceOnUse" x1="0" y1="24" x2="0" y2="4"><stop offset="0%" stop-color="#B94432"/><stop offset="45%" stop-color="#E45B32"/><stop offset="100%" stop-color="#F6C453"/></linearGradient></defs><rect class="bar" style="animation-delay:0.00s" x="0.00" y="19.80" width="3.5" height="4.20" rx="1.75" fill="url(#wdc)"/><rect class="bar" style="animation-delay:0.09s" x="6.10" y="17.94" width="3.5" height="6.06" rx="1.75" fill="url(#wdc)"/><rect class="bar" style="animation-delay:0.18s" x="12.20" y="10.14" width="3.5" height="13.86" rx="1.75" fill="url(#wdc)"/><rect class="bar" style="animation-delay:0.27s" x="18.30" y="10.20" width="3.5" height="13.80" rx="1.75" fill="url(#wdc)"/><rect class="bar" style="animation-delay:0.36s" x="24.40" y="7.49" width="3.5" height="16.51" rx="1.75" fill="url(#wdc)"/><rect class="bar" style="animation-delay:0.45s" x="30.50" y="5.63" width="3.5" height="18.37" rx="1.75" fill="url(#wdc)"/><rect class="bar" style="animation-delay:0.54s" x="36.60" y="13.49" width="3.5" height="10.51" rx="1.75" fill="url(#wdc)"/><rect class="bar" style="animation-delay:0.63s" x="42.70" y="18.02" width="3.5" height="5.98" rx="1.75" fill="url(#wdc)"/><rect class="bar" style="animation-delay:0.72s" x="48.80" y="19.80" width="3.5" height="4.20" rx="1.75" fill="url(#wdc)"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section class="statement glow" id="how">
+  <div class="wrap">
+    <h2>레시피를 보지 말고,<br>들으세요</h2>
+    <p>화면을 들여다보느라 냄비를 태우는 일은 이제 없습니다.</p>
+  </div>
+</section>
+
+<section class="features glow" id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow hot">기능</span>
+      <h2>주방에서 실제로 벌어지는 일들</h2>
+      <p>있어 보이는 기능이 아니라, 요리하다 손이 멈추는 순간만 골라 담았습니다.</p>
+    </div>
+    <div class="feats">
+<article class="feat">
+          <div class="feat-top"><span class="feat-ico"><svg class="ico" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3.5"/><path d="M8.5 21.5h7"/></svg></span>
+            <span class="feat-n">01</span></div>
+          <h3>말로 요리를 정합니다</h3>
+          <p>화면 한가운데가 마이크입니다. “김치볶음밥” 한마디면 재료와 순서가 바로 펼쳐집니다.</p>
+        </article>
+<article class="feat">
+          <div class="feat-top"><span class="feat-ico"><svg class="ico" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="3.5"/><path d="M10.5 9.2v5.6l4.6-2.8z" fill="currentColor" stroke="none"/></svg></span>
+            <span class="feat-n">02</span></div>
+          <h3>유튜브 영상을 레시피로</h3>
+          <p>영상 주소만 넣어 주세요. 되감기 없이 읽을 수 있는 단계별 레시피로 바뀝니다.</p>
+        </article>
+<article class="feat">
+          <div class="feat-top"><span class="feat-ico"><svg class="ico" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="2.5" width="13" height="19" rx="2.5"/><path d="M5.5 10h13"/><path d="M8.5 6v2.2"/><path d="M8.5 12.4v2.4"/></svg></span>
+            <span class="feat-n">03</span></div>
+          <h3>냉장고를 부탁해</h3>
+          <p>남은 재료를 적어 두면 그것만으로 만들 수 있는 요리를 골라 줍니다.</p>
+        </article>
+<article class="feat">
+          <div class="feat-top"><span class="feat-ico"><svg class="ico" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="8"/><path d="M12 9.5v4h3"/><path d="M9.5 2.5h5"/><path d="M12 2.5v3"/></svg></span>
+            <span class="feat-n">04</span></div>
+          <h3>단계마다 타이머가 따라옵니다</h3>
+          <p>“3분 볶기”가 나오면 타이머가 스스로 켜집니다. 손으로 맞출 필요가 없습니다.</p>
+        </article>
+<article class="feat">
+          <div class="feat-top"><span class="feat-ico"><svg class="ico" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.5h11.5l-1.1 12.2a2 2 0 0 1-2 1.8H8.1a2 2 0 0 1-2-1.8z"/><path d="M16.2 9.2h2.3a2.6 2.6 0 0 1 0 5.2h-1.8"/><path d="M8 11h4"/><path d="M8 14.6h2.6"/></svg></span>
+            <span class="feat-n">05</span></div>
+          <h3>인분을 바꾸면 분량이 다시 계산됩니다</h3>
+          <p>2인분을 4인분으로 바꾸면 모든 재료가 함께 움직입니다. 컵·큰술도 그램으로.</p>
+        </article>
+<article class="feat">
+          <div class="feat-top"><span class="feat-ico"><svg class="ico" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 4.5h6a3 3 0 0 1 2.5 1.4A3 3 0 0 1 14.5 4.5h6v13h-6a3 3 0 0 0-2.5 1.4A3 3 0 0 0 9.5 17.5h-6z"/><path d="M12 5.9v13"/></svg></span>
+            <span class="feat-n">06</span></div>
+          <h3>표지를 만들어 서재에 꽂습니다</h3>
+          <p>완성한 요리는 표지 그림과 함께 남습니다. 다음에 말로 다시 꺼내 옵니다.</p>
+        </article>
+    </div>
+  </div>
+</section>
+
+<div class="wrap blocks">
+<div class="block text-right"><div class="bl-art"><div class="art art-steps">
+          <div class="art-head"><span class="src">youtube.com</span><span class="ttl">토마토 파스타</span></div>
+          <ul class="steps"><li class=""><span class="n">01</span><span class="t">재료 손질</span><span class="d">양파 반 개를 채 썰어 주세요</span></li><li class="on"><span class="n">02</span><span class="t">볶기</span><span class="d">중불에서 3분</span><span class="tm">2:41</span></li><li class=""><span class="n">03</span><span class="t">면 삶기</span><span class="d">끓는 물에 8분</span></li><li class=""><span class="n">04</span><span class="t">합치기</span><span class="d">면수 두 국자를 함께</span></li></ul>
+        </div></div><div class="bl-text">
+          <h3>되감기는 이제 그만</h3>
+          <p class="bl-lead">유튜브 링크를 붙이거나 냉장고에 남은 재료를 말해 주세요. 영상의 말과 화면을 함께 읽어 재료와 순서가 정리된 레시피 한 장을 만듭니다.</p>
+          <ul class="bl-list"><li>유튜브 영상 → 단계별 레시피</li><li>남은 재료만으로 만들 수 있는 요리 제안</li><li>컵·큰술을 그램으로, 2인분을 4인분으로 자동 환산</li></ul>
+        </div></div>
+<div class="block text-left"><div class="bl-text">
+          <h3>해 먹은 요리가 쌓입니다</h3>
+          <p class="bl-lead">완성한 요리는 표지와 함께 서재에 꽂힙니다. “지난주에 만든 그 파스타”라고만 해도 다시 꺼내 옵니다.</p>
+          <ul class="bl-list"><li>요리마다 자동으로 만들어지는 표지</li><li>말로 찾는 서재 검색</li><li>레시피를 파일로 내려받아 보관</li></ul>
+        </div><div class="bl-art"><div class="art art-shelf">
+      <div class="shelf-row">
+        <div class="bk"><span>토마토<br>파스타</span></div>
+        <div class="bk"><span>된장<br>찌개</span></div>
+        <div class="bk"><span>계란<br>말이</span></div>
+      </div>
+      <div class="shelf-bar"></div>
+      <div class="shelf-row">
+        <div class="bk"><span>김치<br>볶음밥</span></div>
+        <div class="bk"><span>가지<br>덮밥</span></div>
+        <div class="bk sk"><span>+</span></div>
+      </div>
+      <div class="shelf-bar"></div>
+      <p class="shelf-say">“지난주에 만든 그 파스타”</p>
+    </div></div></div>
+<div class="block text-right"><div class="bl-art"><div class="art art-cart">
+          <div class="art-head"><span class="src">장보기 목록</span><span class="ttl">토마토 파스타</span></div>
+          <ul class="cart"><li class="have"><span class="bx"></span><span class="nm">올리브유</span><span class="st">있음</span></li><li class="have"><span class="bx"></span><span class="nm">마늘</span><span class="st">있음</span></li><li class="need"><span class="bx"></span><span class="nm">방울토마토</span><span class="st">없음</span></li><li class="need"><span class="bx"></span><span class="nm">바질</span><span class="st">없음</span></li><li class="need"><span class="bx"></span><span class="nm">파르미지아노</span><span class="st">없음</span></li></ul>
+          <div class="cart-foot"><span>3개만 사면 됩니다</span>
+            <span class="cart-go">쇼핑몰에서 찾기 →</span></div>
+        </div></div><div class="bl-text">
+          <h3>장보기까지 이어서</h3>
+          <p class="bl-lead">레시피에 필요한 재료 중 없는 것만 골라 목록으로 묶습니다. 그대로 쇼핑몰 검색으로 넘어가면 장보기가 끝납니다.</p>
+          <ul class="bl-list"><li>가진 재료와 없는 재료를 말로 구분</li><li>부족한 것만 모아 한 장의 목록으로</li><li>목록에서 바로 쇼핑몰 검색으로 연결</li></ul>
+        </div></div>
+</div>
+
+<section class="pricing glow" id="pricing">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow hot">요금제</span>
+      <h2>한 달에 커피 두 잔</h2>
+      <p>맛보기로 충분히 써 보시고 정하세요. 약정도 위약금도 없습니다.</p>
+    </div>
+    <div class="plans">
+<article class="plan">
+          <h3>맛보기</h3>
+          <p class="price"><span class="price-num">₩0</span><span class="price-per">/ 월</span></p>
+          <ul><li>하루 음성 대화 15분</li><li>레시피 저장 10개</li><li>타이머·계량 환산</li></ul>
+          <a class="btn btn-line" href="#">무료로 시작하기</a>
+        </article>
+<article class="plan plan-rec"><span class="plan-badge">가장 많이 고르는 요금제</span>
+          <h3>홈셰프</h3>
+          <p class="price"><span class="price-num">₩9,900</span><span class="price-per">/ 월</span></p>
+          <ul><li>음성 대화 무제한</li><li>레시피 저장 무제한</li><li>유튜브·냉장고 레시피 변환</li><li>AI 표지 월 30장</li><li>장보기 목록 연동</li></ul>
+          <a class="btn btn-fill" href="#">홈셰프 시작하기</a>
+        </article>
+<article class="plan">
+          <h3>키친</h3>
+          <p class="price"><span class="price-num">₩29,000</span><span class="price-per">/ 월</span></p>
+          <ul><li>홈셰프의 모든 기능</li><li>가족 계정 4인</li><li>영양 정보 분석</li><li>레시피 공유 서재</li></ul>
+          <a class="btn btn-line" href="#">키친 문의하기</a>
+        </article>
+    </div>
+    <p class="plan-foot">직접 발급받은 Gemini API 키를 넣어 쓰실 수도 있습니다. 그때는 대화 한도가 없습니다.</p>
+  </div>
+</section>
+
+<section class="faq-sec" id="faq">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow hot">자주 묻는 질문</span>
+      <h2>궁금하실 것들</h2>
+    </div>
+    <div class="faq">
+<details><summary><span>정말 손을 안 대고 쓸 수 있나요?</span><i aria-hidden="true"></i></summary>
+        <div class="ans"><p>네. 처음 한 번 “시작”만 눌러 주시면 그 뒤로는 대화로만 진행합니다. 다음 단계로 넘기기, 분량 바꾸기, 타이머 맞추기 모두 말로 됩니다.</p></div></details>
+<details><summary><span>앱을 설치해야 하나요?</span><i aria-hidden="true"></i></summary>
+        <div class="ans"><p>아닙니다. 웹 브라우저만 있으면 됩니다. 휴대폰, 태블릿, 노트북 어디서나 같은 주소로 들어오시면 서재도 그대로 이어집니다.</p></div></details>
+<details><summary><span>제 목소리가 저장되나요?</span><i aria-hidden="true"></i></summary>
+        <div class="ans"><p>저장하지 않습니다. 음성은 대답을 만드는 데만 쓰이고 곧바로 버려집니다. 서재에 남는 것은 레시피 글과 표지 그림뿐입니다.</p></div></details>
+<details><summary><span>API 키를 따로 발급받아야 하나요?</span><i aria-hidden="true"></i></summary>
+        <div class="ans"><p>요금제를 쓰시면 필요 없습니다. 직접 발급받은 키를 넣어 쓰실 수도 있고, 그때는 대화 한도가 없습니다. 키는 브라우저 안에만 있고 서버로 보내지 않습니다.</p></div></details>
+<details><summary><span>유튜브 링크는 어떻게 레시피가 되나요?</span><i aria-hidden="true"></i></summary>
+        <div class="ans"><p>영상의 말과 화면을 함께 읽어 재료와 순서를 뽑아냅니다. 분량이 안 나오는 영상은 일반적인 기준으로 채우고 그 부분을 표시해 드립니다.</p></div></details>
+<details><summary><span>언제든 해지할 수 있나요?</span><i aria-hidden="true"></i></summary>
+        <div class="ans"><p>네. 위약금이나 약정은 없습니다. 해지해도 모아 둔 레시피는 맛보기 한도 안에서 계속 보실 수 있고, 파일로 내려받을 수도 있습니다.</p></div></details>
+    </div>
+  </div>
+</section>
+
+<section class="cta glow">
+  <div class="wrap">
+    <h2>오늘 저녁부터,<br>손 대지 않고 요리하세요.</h2>
+    <p>준비물은 휴대폰 한 대와 재료뿐입니다.</p>
+    <a class="btn btn-fill" href="#">무료로 시작하기</a>
+    <div class="wave"><svg width="294.0" height="86" viewBox="0 0 294.0 86" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="wdt" gradientUnits="userSpaceOnUse" x1="0" y1="86" x2="0" y2="16"><stop offset="0%" stop-color="#B94432"/><stop offset="45%" stop-color="#E45B32"/><stop offset="100%" stop-color="#F6C453"/></linearGradient></defs><rect x="0.00" y="78.80" width="6" height="7.20" rx="3.0" fill="url(#wdt)"/><rect x="12.00" y="78.80" width="6" height="7.20" rx="3.0" fill="url(#wdt)"/><rect x="24.00" y="70.26" width="6" height="15.74" rx="3.0" fill="url(#wdt)"/><rect x="36.00" y="61.55" width="6" height="24.45" rx="3.0" fill="url(#wdt)"/><rect x="48.00" y="65.32" width="6" height="20.68" rx="3.0" fill="url(#wdt)"/><rect x="60.00" y="47.52" width="6" height="38.48" rx="3.0" fill="url(#wdt)"/><rect x="72.00" y="39.27" width="6" height="46.73" rx="3.0" fill="url(#wdt)"/><rect x="84.00" y="52.04" width="6" height="33.96" rx="3.0" fill="url(#wdt)"/><rect x="96.00" y="30.54" width="6" height="55.46" rx="3.0" fill="url(#wdt)"/><rect x="108.00" y="23.94" width="6" height="62.06" rx="3.0" fill="url(#wdt)"/><rect x="120.00" y="43.77" width="6" height="42.23" rx="3.0" fill="url(#wdt)"/><rect x="132.00" y="22.36" width="6" height="63.64" rx="3.0" fill="url(#wdt)"/><rect x="144.00" y="18.36" width="6" height="67.64" rx="3.0" fill="url(#wdt)"/><rect x="156.00" y="42.11" width="6" height="43.89" rx="3.0" fill="url(#wdt)"/><rect x="168.00" y="24.37" width="6" height="61.63" rx="3.0" fill="url(#wdt)"/><rect x="180.00" y="23.58" width="6" height="62.42" rx="3.0" fill="url(#wdt)"/><rect x="192.00" y="47.50" width="6" height="38.50" rx="3.0" fill="url(#wdt)"/><rect x="204.00" y="36.11" width="6" height="49.89" rx="3.0" fill="url(#wdt)"/><rect x="216.00" y="38.73" width="6" height="47.27" rx="3.0" fill="url(#wdt)"/><rect x="228.00" y="59.12" width="6" height="26.88" rx="3.0" fill="url(#wdt)"/><rect x="240.00" y="55.43" width="6" height="30.57" rx="3.0" fill="url(#wdt)"/><rect x="252.00" y="61.13" width="6" height="24.87" rx="3.0" fill="url(#wdt)"/><rect x="264.00" y="74.93" width="6" height="11.07" rx="3.0" fill="url(#wdt)"/><rect x="276.00" y="78.57" width="6" height="7.43" rx="3.0" fill="url(#wdt)"/><rect x="288.00" y="78.80" width="6" height="7.20" rx="3.0" fill="url(#wdt)"/></svg></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <div>
+      <div class="brand"><svg class="mark" width="24" height="24" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="ldf" gradientUnits="userSpaceOnUse" x1="0" y1="114" x2="0" y2="76"><stop offset="0%" stop-color="#B94432"/><stop offset="45%" stop-color="#E45B32"/><stop offset="100%" stop-color="#F6C453"/></linearGradient></defs><path d="M30 34h68v14a24 24 0 0 1-24 24H54a24 24 0 0 1-24-24z" fill="#B94432"/><rect x="24" y="25" width="80" height="9" rx="4.5" fill="#B94432"/><path d="M104 36h10a6 6 0 0 1 0 12h-10z" fill="#B94432"/><path d="M24 36H14a6 6 0 0 0 0 12h10z" fill="#B94432"/><rect x="18.25" y="107.40" width="5.5" height="6.60" rx="2.75" fill="url(#ldf)"/><rect x="25.42" y="106.76" width="5.5" height="7.24" rx="2.75" fill="url(#ldf)"/><rect x="32.58" y="96.66" width="5.5" height="17.34" rx="2.75" fill="url(#ldf)"/><rect x="39.75" y="95.24" width="5.5" height="18.76" rx="2.75" fill="url(#ldf)"/><rect x="46.92" y="88.44" width="5.5" height="25.56" rx="2.75" fill="url(#ldf)"/><rect x="54.08" y="79.35" width="5.5" height="34.65" rx="2.75" fill="url(#ldf)"/><rect x="61.25" y="86.77" width="5.5" height="27.23" rx="2.75" fill="url(#ldf)"/><rect x="68.42" y="85.54" width="5.5" height="28.46" rx="2.75" fill="url(#ldf)"/><rect x="75.58" y="83.09" width="5.5" height="30.91" rx="2.75" fill="url(#ldf)"/><rect x="82.75" y="94.91" width="5.5" height="19.09" rx="2.75" fill="url(#ldf)"/><rect x="89.92" y="99.85" width="5.5" height="14.15" rx="2.75" fill="url(#ldf)"/><rect x="97.08" y="105.30" width="5.5" height="8.70" rx="2.75" fill="url(#ldf)"/><rect x="104.25" y="107.40" width="5.5" height="6.60" rx="2.75" fill="url(#ldf)"/></svg><span class="name">CookPilot</span></div>
+      <p class="copy">© 2026 CookPilot · 손은 요리에, 레시피는 쿡파일럿에.</p>
+    </div>
+    <nav>
+      <a href="#">이용약관</a><a href="#">개인정보처리방침</a>
+      <a href="#">문의하기</a><a href="#">만든 사람들</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>
