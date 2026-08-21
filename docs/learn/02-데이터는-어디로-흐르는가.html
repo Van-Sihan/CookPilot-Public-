@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터는 어디로 흐르는가 · 쿡파일럿 학습 노트</title>
+<link rel="stylesheet" href="_assets/learn.css">
+</head>
+<body>
+
+<header class="doc-head">
+  <p class="doc-kicker">쿡파일럿 학습 노트 · 02</p>
+  <h1>데이터는 어디로 흐르는가 — API 키가 지나가는 길</h1>
+  <p class="doc-question">물어본 것 — “아키텍처에선 데이터가 저렇게 흐른다고 정리되어 있는데,
+  <code>lib/domain/api-key.ts</code> 에서부터 데이터랑 API 가 어떻게 움직이고 흐르는지 다시 설명해줘.”</p>
+</header>
+
+<div class="summary">
+  <p>키를 붙여넣고 “들어가기”를 누르면 값이 <strong>네 개 파일을 차례로 거쳐</strong>
+  브라우저에 저장됩니다. 이 문서는 그 길을 한 걸음씩 따라갑니다.
+  그리고 가장 헷갈리는 것 하나를 풉니다 — <strong>import 방향과 데이터가 흐르는
+  방향은 서로 반대입니다.</strong></p>
+</div>
+
+<main>
+
+  <div class="warn">
+    <strong>먼저 알아 두실 것</strong>
+    <p>“API 가 어떻게 흐르는지” 물으셨는데, <strong>지금 이 저장소에는 구글 API 를
+    실제로 부르는 코드가 한 줄도 없습니다.</strong> 키를 받아서 브라우저에 저장하는
+    데까지가 전부입니다. 저장한 키로 아직 아무것도 하지 않습니다.</p>
+    <p>그래서 이 문서는 <strong>지금 실제로 있는 흐름</strong>을 먼저 끝까지 따라간
+    다음, 마지막에 <strong>구글을 부르게 되면 그 코드가 어디에 들어갈지</strong>를
+    짚습니다. 있는 것과 없는 것을 섞지 않으려고 나눴습니다.</p>
+  </div>
+
+  <h2>1부 · 기본 문법</h2>
+
+  <h3>이 문서를 읽는 데 필요한 개념 세 가지</h3>
+
+  <p>흐름을 따라가기 전에 처음 보실 만한 것 세 개를 먼저 풉니다.</p>
+
+  <h3>① 인터페이스 — “이런 걸 할 줄 아는 무언가”</h3>
+
+  <p><span class="term">인터페이스</span>는 <strong>할 수 있는 일의 목록만 적어
+  둔 약속</strong>입니다. 어떻게 하는지는 안 적습니다.</p>
+
+<pre><code>// 약속: "리모컨" 이라 부르려면 이 두 가지를 할 줄 알아야 한다
+type 리모컨 = {
+  켜기(): void;
+  끄기(): void;
+};
+
+// 이 함수는 "리모컨" 이기만 하면 뭐든 받는다.
+// TV 리모컨인지 에어컨 리모컨인지는 알 필요도 없고 알지도 못한다
+function 잠들기전(기계: 리모컨) {
+  기계.끄기();
+}</code></pre>
+
+  <p><code>잠들기전</code> 함수는 <strong>실제 기계를 모릅니다.</strong> 그저
+  “끄기를 할 줄 아는 무언가”를 받을 뿐입니다. 이게 뒤에서 핵심이 됩니다.</p>
+
+  <h3>② 콜백 — 함수를 값처럼 건네주기</h3>
+
+  <p>함수도 값입니다. 그래서 다른 함수에 넘길 수 있습니다.</p>
+
+<pre><code>// 넘겨받은 함수를 나중에 부른다
+function 알림등록(할일: () =&gt; void) {
+  나중에목록.push(할일);
+}
+
+알림등록(() =&gt; console.log("키가 바뀌었어요"));</code></pre>
+
+  <p>이렇게 “나중에 불러 달라고 맡겨 두는 함수”를 <span class="term">콜백</span>
+  이라고 합니다.</p>
+
+  <h3>③ 브랜드 타입 — 검사를 통과한 값에만 붙는 도장</h3>
+
+  <p><code>api-key.ts</code> 맨 위의 이 두 줄이 처음 보면 낯섭니다.</p>
+
+  <span class="file">lib/domain/api-key.ts:14</span>
+<pre><code>declare const validated: unique symbol;
+
+export type ApiKey = string &amp; { readonly [validated]: true };</code></pre>
+
+  <p>말로 풀면 <strong>“그냥 문자열이 아니라, 검사를 통과했다는 도장이 찍힌
+  문자열”</strong> 이라는 뜻입니다. <code>&amp;</code> 는 “이것이면서 동시에
+  저것” 이라는 뜻입니다.</p>
+
+  <p>중요한 것은 <strong>이 도장을 찍을 수 있는 곳이 단 한 군데뿐</strong>이라는
+  점입니다.</p>
+
+<pre><code>const 아무거나: ApiKey = "hello";        // ✗ 도장이 없어서 거절
+const 검사후 = checkApiKey("hello");     // ✓ 이 함수만 도장을 찍어 준다</code></pre>
+
+  <div class="tip">
+    <strong>알아두면 좋은 것</strong>
+    <p>이 도장은 <strong>실행될 때는 존재하지 않습니다.</strong> 빌드하면
+    타입은 전부 사라지므로, 브라우저가 보는 것은 그냥 문자열입니다.
+    도장은 <strong>우리가 코드를 쓰는 동안</strong>만 있는 안전장치입니다.
+    (01번 문서의 “타입은 빌드하면 사라진다”와 같은 이야기입니다.)</p>
+  </div>
+
+  <h2>2부 · 우리 코드에서는</h2>
+
+  <h3>먼저 · 아키텍처 문서의 흐름도 읽는 법</h3>
+
+  <p><code>ARCHITECTURE.md</code> 에 이런 그림이 있습니다.</p>
+
+<pre><code>                 app/start/page.tsx
+                         │
+                         ▼
+         components/start/api-key-form.tsx
+              │          │          │
+     ┌────────┘          │          └──────────┐
+     ▼                   ▼                     ▼
+lib/adapter ───────► lib/usecase ────────► lib/domain
+(localStorage)       (인터페이스 선언)      (import 문 없음)
+     │                                          ▲
+     └──────────────────────────────────────────┘
+               ApiKey 타입을 직접 가져다 쓴다</code></pre>
+
+  <p><strong>이 그림이 말하는 것은 딱 하나입니다 — 누가 누구를
+  <code>import</code> 하는가.</strong> 실행 순서도 아니고 데이터가 흐르는
+  방향도 아닙니다. 파일 맨 위의 <code>import</code> 문을 그대로 그린 것입니다.</p>
+
+  <p><code>A → B</code> 는 <strong>“A 파일 맨 위에 B 를 가져오는 줄이 있다”</strong>
+  로 읽습니다. 화살표마다 실제 코드 한 줄이 대응합니다.</p>
+
+  <table>
+    <tr><th>그림의 화살표</th><th>실제 코드</th></tr>
+    <tr>
+      <td><code>page → api-key-form</code></td>
+      <td><code>import { ApiKeyForm } from ...</code> (page.tsx:3)</td>
+    </tr>
+    <tr>
+      <td><code>api-key-form → adapter</code></td>
+      <td><code>import { browserApiKeyStore } from ...</code> (:12)</td>
+    </tr>
+    <tr>
+      <td><code>api-key-form → domain</code></td>
+      <td><code>import { maskApiKey, type ApiKey } from ...</code> (:13)</td>
+    </tr>
+    <tr>
+      <td><code>api-key-form → usecase</code></td>
+      <td><code>import { enterWithApiKey, ... } from ...</code> (:14)</td>
+    </tr>
+    <tr>
+      <td><code>adapter → usecase</code></td>
+      <td><code>import type { ApiKeyStore } from ...</code> (adapter:10)</td>
+    </tr>
+    <tr>
+      <td><code>adapter → domain</code></td>
+      <td><code>import type { ApiKey } from ...</code> (adapter:9)</td>
+    </tr>
+    <tr>
+      <td><code>usecase → domain</code></td>
+      <td><code>import { checkApiKey, ... } from ...</code> (usecase:9)</td>
+    </tr>
+    <tr>
+      <td><code>domain 에서 나가는 화살표 없음</code></td>
+      <td>파일에 <code>import</code> 문이 한 줄도 없음</td>
+    </tr>
+  </table>
+
+  <p>화살표를 따라가면 <strong>항상 아는 것이 적은 쪽으로</strong> 갑니다.</p>
+
+  <table>
+    <tr><th>파일</th><th>아는 것</th><th>모르는 것</th></tr>
+    <tr><td><code>api-key-form.tsx</code></td><td>React, 브라우저, 세 계층 전부</td><td>—</td></tr>
+    <tr><td><code>lib/adapter</code></td><td>localStorage</td><td>화면, React</td></tr>
+    <tr><td><code>lib/usecase</code></td><td>절차(검사 → 저장)</td><td>저장 방법, 브라우저, React</td></tr>
+    <tr><td><code>lib/domain</code></td><td>규칙(빈 값 거절)</td><td><strong>전부</strong></td></tr>
+  </table>
+
+  <p><code>domain</code> 에 <code>import</code> 문이 하나도 없다는 것이
+  <strong>이 구조가 지켜지고 있다는 증거</strong>입니다. 아무것도 모르니까
+  어디서든 부를 수 있고, 다른 것이 바뀌어도 영향을 받지 않습니다.</p>
+
+  <div class="warn">
+    <strong>헷갈리기 쉬운 점</strong>
+    <p>반대 방향 화살표는 <strong>하나도 없어야 합니다.</strong>
+    <code>lib/</code> 안의 어떤 파일도 <code>components/</code> 를 가리키지
+    않습니다. 만약 <code>lib/usecase</code> 가 <code>lib/adapter</code> 를
+    import 한다면 그건 규칙을 어긴 것입니다 — 안쪽이 바깥쪽을 알게 되니까요.</p>
+    <p>그림에는 키를 다루는 파일만 그렸습니다. <code>api-key-form.tsx</code> 는
+    이 밖에 <code>react</code>, <code>components/icons</code>,
+    <code>lib/site-content</code> 도 import 합니다.</p>
+  </div>
+
+  <h3>가는 길 — 키를 넣고 “들어가기”를 누르면</h3>
+
+  <p>입력칸에 키를 붙여넣고 단추를 누른 순간부터 따라갑니다. 네 걸음입니다.</p>
+
+<pre><code>[1] components/start/api-key-form.tsx  onSubmit()      화면
+        ↓  raw (사용자가 친 문자열 그대로)
+[2] lib/usecase/enter-with-api-key.ts  enterWithApiKey()  유스케이스
+        ↓  raw
+[3] lib/domain/api-key.ts              checkApiKey()      도메인 ← 여기가 가장 안쪽
+        ↑  { ok: true, key: ApiKey }   도장 찍힌 키가 되돌아 나온다
+[4] lib/adapter/browser-api-key-store.ts  save()          어댑터
+        ↓
+    localStorage                                          브라우저</code></pre>
+
+  <p><strong>3번에서 방향이 한 번 꺾입니다.</strong> 가장 안쪽까지 들어갔다가
+  도장을 받아 되돌아 나온 뒤, 그 도장 찍힌 값을 들고 바깥(저장소)으로 나갑니다.</p>
+
+  <h3>걸음 1 · 화면이 유스케이스를 부른다</h3>
+
+  <span class="file">components/start/api-key-form.tsx:49</span>
+<pre><code>function onSubmit(e: React.FormEvent&lt;HTMLFormElement&gt;) {
+  e.preventDefault();
+
+  const result = enterWithApiKey(raw, browserApiKeyStore);
+  //                             ↑          ↑
+  //                        입력한 값    저장할 곳
+  ...
+}</code></pre>
+
+  <p>여기서 눈여겨볼 것은 <strong>인자가 두 개</strong>라는 점입니다.
+  값만 넘기는 게 아니라 <strong>“이걸 어디에 저장할지”까지 같이 넘깁니다.</strong>
+  왜 그러는지는 조금 뒤에 나옵니다.</p>
+
+  <p>화면은 검사도 저장도 직접 하지 않습니다. 한 번 부르고 결과만 받습니다.</p>
+
+  <h3>걸음 2 · 유스케이스가 도메인에 검사를 맡긴다</h3>
+
+  <span class="file">lib/usecase/enter-with-api-key.ts:35</span>
+<pre><code>export function enterWithApiKey(raw: string, store: ApiKeyStore): EnterResult {
+  const checked = checkApiKey(raw);              // ← 도메인에 맡김
+
+  if (!checked.ok) return { ok: false, reason: checked.problem };
+
+  try {
+    store.save(checked.key);                     // ← 어댑터에 맡김
+  } catch {
+    return { ok: false, reason: "storage" };
+  }
+
+  return { ok: true, key: checked.key };
+}</code></pre>
+
+  <p>이 함수는 <strong>순서를 정하는 일만</strong> 합니다. 검사 규칙도 모르고
+  저장 방법도 모릅니다. “먼저 검사하고, 통과하면 저장한다” 는 절차만 압니다.</p>
+
+  <h3>걸음 3 · 도메인이 도장을 찍는다</h3>
+
+  <span class="file">lib/domain/api-key.ts:31</span>
+<pre><code>export function checkApiKey(raw: string): ApiKeyCheck {
+  const key = raw.trim();
+
+  if (key.length === 0) return { ok: false, problem: "empty" };
+
+  return { ok: true, key: <span class="hl">key as ApiKey</span> };
+}</code></pre>
+
+  <p>형광펜 친 <code>key as ApiKey</code> 가 <strong>도장을 찍는 순간</strong>
+  입니다. 저장소 전체에서 이 도장이 찍히는 곳은 여기 한 줄뿐입니다.</p>
+
+  <p>그래서 <code>store.save(checked.key)</code> 에 들어가는 값은
+  <strong>반드시 검사를 통과한 값입니다.</strong> 다른 길이 없습니다.</p>
+
+<pre><code>store.save("아무 문자열");        // ✗ 컴파일 거부 — 도장이 없음
+store.save(checked.key);          // ✓ checkApiKey 를 거쳐 온 값</code></pre>
+
+  <h3>걸음 4 · 어댑터가 실제로 저장한다</h3>
+
+  <span class="file">lib/adapter/browser-api-key-store.ts:28</span>
+<pre><code>save(key: ApiKey) {
+  window.localStorage.setItem(STORAGE_KEY, key);
+  notify();                       // 화면들에게 "바뀌었다" 고 알림
+},</code></pre>
+
+  <p><code>window.localStorage</code> 라는 단어가 나오는 곳은
+  <strong>이 파일 하나뿐</strong>입니다. 도메인도 유스케이스도 브라우저를
+  모릅니다.</p>
+
+  <h3>여기가 핵심 · 의존 방향과 데이터 방향은 반대다</h3>
+
+  <p>이제 가장 헷갈리는 것을 풉니다. 두 그림을 나란히 보세요.</p>
+
+<pre><code>[ import 방향 ]  누가 누구를 "가져다 쓰는가"
+
+  adapter  ───►  usecase  ───►  domain
+                                   (안쪽)
+
+[ 실행 중 데이터 방향 ]  값이 실제로 "어디로 가는가"
+
+  domain   ───►  usecase  ───►  adapter  ───►  localStorage
+  (도장)                         (저장)</code></pre>
+
+  <p><strong>화살표가 정반대입니다.</strong> 이게 실수가 아니라 의도입니다.</p>
+
+  <p>유스케이스는 어댑터를 <strong>import 하지 않습니다.</strong> 그런데 실행할
+  때는 어댑터의 <code>save()</code> 를 부릅니다. 어떻게 모르는 것을 부를까요?</p>
+
+  <h3>인터페이스가 그 뒤집기를 가능하게 한다</h3>
+
+  <p>유스케이스는 “저장소”가 무엇인지 모른 채, <strong>할 줄 알아야 하는 일의
+  목록만</strong> 적어 둡니다. 앞에서 본 리모컨과 같습니다.</p>
+
+  <span class="file">lib/usecase/enter-with-api-key.ts:12</span>
+<pre><code>export type ApiKeyStore = {
+  save(key: ApiKey): void;
+  load(): ApiKey | null;
+  clear(): void;
+  subscribe(onChange: () =&gt; void): () =&gt; void;
+};</code></pre>
+
+  <p>그리고 어댑터가 그 목록을 <strong>실제로 채웁니다.</strong></p>
+
+  <span class="file">lib/adapter/browser-api-key-store.ts:27</span>
+<pre><code>export const browserApiKeyStore: <span class="hl">ApiKeyStore</span> = {
+  save(key) { window.localStorage.setItem(STORAGE_KEY, key); notify(); },
+  load()    { ... },
+  clear()   { ... },
+  subscribe(onChange) { ... },
+};</code></pre>
+
+  <p>형광펜 부분이 <strong>어댑터가 유스케이스를 import 하는 이유</strong>입니다.
+  약속을 지키겠다고 선언하려면 그 약속을 알아야 하니까요. 반대로 유스케이스는
+  어댑터를 영영 몰라도 됩니다.</p>
+
+  <p>그럼 둘은 언제 만날까요? <strong>화면이 이어 줍니다.</strong></p>
+
+  <span class="file">components/start/api-key-form.tsx:54</span>
+<pre><code>const result = enterWithApiKey(raw, <span class="hl">browserApiKeyStore</span>);
+//                                  ↑ 여기서 실제 구현을 끼워 넣는다</code></pre>
+
+  <div class="tip">
+    <strong>알아두면 좋은 것 — 왜 이렇게까지 하나</strong>
+    <p>나중에 키를 서버에 저장하도록 바꾼다고 해 봅시다.
+    <code>serverApiKeyStore</code> 를 새로 만들어 위 한 줄만 바꾸면 끝입니다.
+    <strong><code>domain</code> 과 <code>usecase</code> 는 한 글자도 안 고칩니다.</strong>
+    바뀌기 쉬운 것(저장 방법)을 바깥에, 잘 안 바뀌는 것(규칙)을 안쪽에 둔
+    결과입니다.</p>
+  </div>
+
+  <h3>오는 길 — 저장된 키가 화면으로 돌아온다</h3>
+
+  <p>지금까지는 나가는 길이었습니다. 반대로 <strong>이미 저장된 키를 읽어
+  화면을 바꾸는</strong> 길도 있습니다.</p>
+
+  <span class="file">components/start/api-key-form.tsx:43</span>
+<pre><code>const saved = useSyncExternalStore&lt;ApiKey | null&gt;(
+  subscribe,                                  // ① 바뀌면 알려 달라고 등록
+  () =&gt; findSavedKey(browserApiKeyStore),     // ② 지금 값을 읽는 방법
+  () =&gt; null,                                 // ③ 서버에서 그릴 때의 값
+);</code></pre>
+
+  <p><code>useSyncExternalStore</code> 는 <strong>React 바깥에 있는 값</strong>을
+  안전하게 읽어 오는 도구입니다. <code>localStorage</code> 는 React 가 관리하는
+  값이 아니라 브라우저의 것이므로 이걸 씁니다.</p>
+
+  <p>세 번째 줄 <code>() =&gt; null</code> 이 중요합니다. 이 페이지는 서버에서
+  미리 그려지는데, <strong>서버에는 localStorage 가 없습니다.</strong> 그래서
+  서버에서는 언제나 “저장된 키 없음”으로 그리고, 브라우저에 도착한 뒤 실제 값을
+  읽습니다. 이렇게 해야 서버가 그린 화면과 브라우저의 첫 화면이 어긋나지 않습니다.</p>
+
+  <h3>저장하면 화면이 저절로 바뀌는 이유</h3>
+
+  <p><code>save()</code> 안의 <code>notify()</code> 를 기억하시나요.
+  그게 이 고리를 닫습니다.</p>
+
+  <span class="file">lib/adapter/browser-api-key-store.ts:16</span>
+<pre><code>const listeners = new Set&lt;() =&gt; void&gt;();   // 알려 달라고 한 쪽들
+
+function notify() {
+  listeners.forEach((fn) =&gt; fn());          // 전원에게 한 번씩 알림
+}</code></pre>
+
+  <p>전체 고리는 이렇습니다.</p>
+
+<pre><code>화면이 시작될 때
+    subscribe(알림받을함수)  →  listeners 에 등록됨
+
+"들어가기" 를 누르면
+    save()  →  localStorage 에 쓰기  →  notify()
+                                          ↓
+                              등록해 둔 함수가 불림
+                                          ↓
+                        React 가 값을 다시 읽어 화면을 새로 그림
+                                          ↓
+                     hasSaved 가 true 가 되어 "들어와 있습니다" 로 바뀜</code></pre>
+
+  <p>그래서 <code>onSubmit</code> 안에는 <strong>화면을 바꾸는 코드가
+  없습니다.</strong> 저장만 하면 알림이 돌아 화면이 알아서 따라옵니다.</p>
+
+  <span class="file">components/start/api-key-form.tsx:66</span>
+<pre><code>setRaw("");
+
+/* 카드가 "들어와 있습니다" 모습으로 바뀌는 일은 저장소 구독이 알아서 한다 */</code></pre>
+
+  <div class="tip">
+    <strong>알아두면 좋은 것</strong>
+    <p><code>subscribe</code> 는 브라우저의 <code>storage</code> 이벤트도 함께
+    듣습니다. 그래서 <strong>다른 탭에서</strong> 키를 지우면 이 탭의 화면도
+    같이 바뀝니다. <code>storage</code> 이벤트는 다른 탭에만 가기 때문에,
+    지금 탭 몫은 <code>notify()</code> 가 직접 챙기는 것입니다.</p>
+  </div>
+
+  <h3>그래서 API 는 어디에 있나 — 아직 없습니다</h3>
+
+  <p>여기까지가 <strong>지금 실제로 있는 전부</strong>입니다. 정리하면:</p>
+
+  <table>
+    <tr><th>지금 있는 것</th><th>아직 없는 것</th></tr>
+    <tr>
+      <td>키를 받아 검사(빈 값만)</td>
+      <td>키가 진짜 쓸 수 있는지 확인</td>
+    </tr>
+    <tr>
+      <td>브라우저에 저장</td>
+      <td>구글 Gemini 에 요청 보내기</td>
+    </tr>
+    <tr>
+      <td>저장된 키를 읽어 화면 바꾸기</td>
+      <td>음성·레시피 등 실제 기능</td>
+    </tr>
+  </table>
+
+  <p>나중에 구글을 실제로 부르게 되면, 그 코드는 <strong>어댑터 계층</strong>에
+  들어갑니다. <code>localStorage</code> 와 마찬가지로 “바깥 세상”이기 때문입니다.</p>
+
+<pre><code>lib/domain/recipe.ts              레시피란 무엇인가 (구글을 모름)
+lib/usecase/make-recipe.ts        "유튜브 링크를 레시피로"
+                                  필요한 것은 인터페이스로 선언만:
+                                    type RecipeMaker = {
+                                      fromYoutube(url: string): Promise&lt;Recipe&gt;;
+                                    }
+lib/adapter/gemini-client.ts      ← 실제 fetch() 가 사는 곳
+                                    RecipeMaker 를 구글 API 로 채운다</code></pre>
+
+  <p>지금 <code>ApiKeyStore</code> → <code>browserApiKeyStore</code> 가 맺은
+  관계와 <strong>똑같은 모양</strong>입니다. 저장소를 그렇게 만들어 둔 덕분에
+  API 를 붙일 때 새로 배울 게 없습니다.</p>
+
+  <h2>3부 · 직접 확인해보기</h2>
+
+  <div class="step">
+    <h3>실험 1 · 도장이 없는 값은 정말 막히는지</h3>
+    <p><code>lib/usecase/enter-with-api-key.ts</code> 의 <code>store.save</code> 줄을
+    잠깐 이렇게 바꿔 보세요.</p>
+<pre><code>store.save(checked.key);
+   ↓
+store.save("아무 문자열");</code></pre>
+    <p>편집기가 즉시 빨간 줄을 긋습니다 — <code>string</code> 형식을
+    <code>ApiKey</code> 에 할당할 수 없다는 내용입니다.
+    <strong>검사를 건너뛴 값이 저장소로 흘러들 수 없다</strong>는 말이
+    말뿐이 아니라 실제로 막혀 있음을 눈으로 보실 수 있습니다. 되돌리세요.</p>
+  </div>
+
+  <div class="step">
+    <h3>실험 2 · 알림 고리를 끊어 보기</h3>
+    <p><code>lib/adapter/browser-api-key-store.ts</code> 의 <code>save()</code> 안에서
+    <code>notify();</code> 한 줄을 주석 처리하세요.</p>
+<pre><code>window.localStorage.setItem(STORAGE_KEY, key);
+// notify();</code></pre>
+    <p><code>/start</code> 에서 키를 넣고 “들어가기”를 눌러 보세요.
+    <strong>화면이 그대로입니다.</strong> 저장은 됐는데 아무도 알려 주지 않아
+    React 가 다시 그리지 않은 것입니다. 새로고침하면 그제야 바뀝니다.</p>
+    <p>알림 한 줄이 무슨 일을 하고 있었는지 확실해집니다. 되돌리세요.</p>
+  </div>
+
+  <div class="step">
+    <h3>실험 3 · 저장 위치를 눈으로 보기</h3>
+    <p><code>/start</code> 에서 키를 저장한 뒤, 브라우저에서
+    <strong>F12 → Application 탭 → Local Storage → localhost</strong> 를 여세요.</p>
+    <p><code>cookpilot.gemini-key</code> 라는 이름으로 값이 들어 있습니다.
+    이 이름은 <code>browser-api-key-store.ts:13</code> 의
+    <code>STORAGE_KEY</code> 에서 온 것입니다.
+    <strong>서버로는 아무것도 가지 않았다는 것</strong>도 Network 탭에서 확인하실 수
+    있습니다 — 키를 저장할 때 오가는 요청이 없습니다.</p>
+  </div>
+
+  <div class="warn">
+    <strong>헷갈리기 쉬운 점</strong>
+    <p><strong>“의존”과 “호출”은 다릅니다.</strong></p>
+    <p>유스케이스는 어댑터를 <strong>의존하지 않습니다</strong>(import 안 함).
+    하지만 실행 중에는 어댑터의 함수를 <strong>호출합니다</strong>.
+    모순처럼 보이지만, 호출하는 대상이 “어댑터”가 아니라
+    <strong>“넘겨받은 무언가”</strong>이기 때문에 가능합니다.</p>
+    <p>코드를 읽을 때 <code>store.save(...)</code> 를 보고
+    “아, 여기서 localStorage 에 쓰는구나” 라고 읽으면 안 됩니다.
+    <strong>“넘겨받은 저장소가 무엇이든 그것의 save 를 부른다”</strong> 가
+    정확한 독법입니다. 무엇이 넘어왔는지는 화면이 정합니다.</p>
+  </div>
+
+</main>
+
+<footer class="doc-foot">
+  쿡파일럿 학습 노트 · <a href="index.html">목차로 돌아가기</a>
+</footer>
+
+</body>
+</html>

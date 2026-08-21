@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>입력을 받아 처리하기까지 · 쿡파일럿 학습 노트</title>
+<link rel="stylesheet" href="_assets/learn.css">
+</head>
+<body>
+
+<header class="doc-head">
+  <p class="doc-kicker">쿡파일럿 학습 노트 · 03</p>
+  <h1>입력을 받아 처리하기까지 — 키보드에서 저장까지</h1>
+  <p class="doc-question">물어본 것 — “데이터 입력을 어떻게 받아와서 그걸 처리하는지 흐름을 알고 싶어.”</p>
+</header>
+
+<div class="summary">
+  <p>02번 문서가 <strong>값이 어느 파일을 거쳐 가는지</strong>를 다뤘다면,
+  이 문서는 그 앞쪽 — <strong>사용자가 친 글자가 애초에 어떻게 코드 안으로
+  들어오는지</strong>를 다룹니다. 키보드를 누르는 순간부터 따라갑니다.</p>
+</div>
+
+<main>
+
+  <h2>1부 · 기본 문법</h2>
+
+  <h3>React 에서 입력칸은 값을 들고 있지 않습니다</h3>
+
+  <p>여기가 처음 배울 때 가장 이상하게 느껴지는 부분입니다.</p>
+
+  <p>보통 HTML 입력칸은 <strong>자기가</strong> 값을 들고 있습니다. 사용자가
+  글자를 치면 입력칸 안에 그 글자가 쌓입니다. 코드는 필요할 때 “거기 뭐라고
+  적혀 있어?” 하고 물어봅니다.</p>
+
+<pre><code>&lt;!-- 그냥 HTML --&gt;
+&lt;input id="key"&gt;
+
+&lt;script&gt;
+  // 필요할 때 입력칸에게 물어본다
+  const 값 = document.getElementById("key").value;
+&lt;/script&gt;</code></pre>
+
+  <p>React 는 반대입니다. <strong>값은 React 가 들고 있고, 입력칸은 그것을
+  비춰 보여 주기만</strong> 합니다. 거울이라고 생각하면 됩니다.</p>
+
+<pre><code>const [값, 값바꾸기] = useState("");
+
+&lt;input value={값} onChange={...} /&gt;
+//     ↑ 거울에 비출 대상</code></pre>
+
+  <div class="tip">
+    <strong>알아두면 좋은 것 — 왜 이렇게 하나</strong>
+    <p>값이 한 군데에 모여 있으면 <strong>“지금 무엇이 입력되어 있는가”를 한
+    곳만 보면 됩니다.</strong> 입력칸이 열 개여도 마찬가지입니다.
+    또 값을 코드로 바꾸면(예: 저장 후 비우기) 화면이 알아서 따라옵니다.
+    입력칸에게 일일이 “너 비워라” 라고 시키지 않아도 됩니다.</p>
+  </div>
+
+  <h3>useState — 값을 기억하는 상자</h3>
+
+  <p><span class="term">useState</span> 는 <strong>화면을 다시 그려도 값이
+  살아남게</strong> 해 주는 도구입니다.</p>
+
+<pre><code>const [raw, setRaw] = useState("");
+//      ↑     ↑                ↑
+//   지금 값  바꾸는 함수    처음 값</code></pre>
+
+  <p>왼쪽 대괄호는 <strong>두 개짜리 배열을 한 번에 풀어 받는</strong> 문법입니다.
+  <code>useState</code> 가 <code>[값, 바꾸는함수]</code> 를 돌려주므로 이렇게
+  받습니다.</p>
+
+  <div class="warn">
+    <strong>헷갈리기 쉬운 점</strong>
+    <p><strong>값을 직접 바꾸면 안 됩니다.</strong> 반드시 바꾸는 함수를
+    써야 합니다.</p>
+<pre><code>raw = "AIza";        // ✗ 화면이 안 바뀜 (게다가 const 라 에러)
+setRaw("AIza");      // ✓ React 가 알아채고 화면을 다시 그림</code></pre>
+    <p>React 는 <strong>이 함수가 불린 것을 보고</strong> “값이 바뀌었으니
+    화면을 새로 그려야겠다” 고 판단합니다. 직접 대입하면 아무도 모릅니다.</p>
+  </div>
+
+  <h3>이벤트 — 브라우저가 알려 주는 “방금 이런 일이 있었다”</h3>
+
+  <p>사용자가 무언가 하면 브라우저가 <span class="term">이벤트</span>를
+  일으킵니다. 우리는 “그 일이 생기면 이 함수를 불러 달라” 고 미리 맡겨 둡니다.</p>
+
+<pre><code>&lt;input onChange={함수} /&gt;      글자가 바뀌면 이 함수를 불러 줘
+&lt;form onSubmit={함수} /&gt;       제출되면 이 함수를 불러 줘
+&lt;button onClick={함수} /&gt;      눌리면 이 함수를 불러 줘</code></pre>
+
+  <p>불릴 때 그 함수는 <strong>무슨 일이 있었는지 적힌 쪽지</strong>를 하나
+  받습니다. 보통 <code>e</code> 라고 이름 짓습니다 (event 의 첫 글자).</p>
+
+  <h2>2부 · 우리 코드에서는</h2>
+
+  <h3>준비 · 값을 담을 상자 세 개</h3>
+
+  <span class="file">components/start/api-key-form.tsx:24</span>
+<pre><code>const [raw, setRaw] = useState("");                      // 입력칸에 적힌 글자
+const [shown, setShown] = useState(false);               // 키를 눈에 보이게 할지
+const [message, setMessage] = useState&lt;string | null&gt;(null);  // 오류 문구</code></pre>
+
+  <p>세 개가 각각 화면의 한 부분을 맡습니다. <code>raw</code> 는 입력칸,
+  <code>shown</code> 은 눈 모양 단추, <code>message</code> 는 입력칸 밑의
+  빨간 글씨입니다.</p>
+
+  <h3>걸음 1 · 글자 하나마다 한 바퀴 돈다</h3>
+
+  <span class="file">components/start/api-key-form.tsx:122</span>
+<pre><code>&lt;input
+  value={raw}
+  onChange={(e) =&gt; {
+    setRaw(e.target.value);
+    setMessage(null);
+  }}
+  ...
+/&gt;</code></pre>
+
+  <p><code>AIza</code> 네 글자를 치면 이 고리가 <strong>네 번</strong> 돕니다.</p>
+
+<pre><code>사용자가 'A' 를 누름
+    ↓
+브라우저가 onChange 이벤트를 일으킴
+    ↓
+(e) =&gt; setRaw(e.target.value)          e.target.value 는 "A"
+    ↓
+raw 가 "" 에서 "A" 로 바뀜
+    ↓
+React 가 ApiKeyForm 함수를 처음부터 다시 실행
+    ↓
+&lt;input value={raw} /&gt; 가 value="A" 로 다시 그려짐
+    ↓
+화면에 'A' 가 보인다</code></pre>
+
+  <p>여기서 <code>e.target</code> 은 <strong>이벤트가 일어난 그 입력칸</strong>,
+  <code>.value</code> 는 <strong>지금 거기 적혀 있는 글자 전부</strong>입니다.
+  방금 친 한 글자가 아닙니다.</p>
+
+<pre><code>'A' 치면  → e.target.value = "A"
+'I' 치면  → e.target.value = "AI"
+'z' 치면  → e.target.value = "AIz"
+'a' 치면  → e.target.value = "AIza"</code></pre>
+
+  <div class="tip">
+    <strong>알아두면 좋은 것</strong>
+    <p>붙여넣기(Ctrl+V)도 <strong>똑같이 <code>onChange</code> 한 번</strong>으로
+    처리됩니다. 39글자를 한꺼번에 붙여넣으면 <code>e.target.value</code> 에
+    39글자가 통째로 들어옵니다. 글자 수만큼 도는 것이 아니라
+    <strong>“값이 바뀔 때마다”</strong> 도는 것이기 때문입니다.</p>
+  </div>
+
+  <p>같은 자리에 <code>setMessage(null)</code> 이 함께 있는 이유도 여기 있습니다.
+  <strong>다시 타이핑을 시작하면</strong> 아까 뜬 오류 문구를 치우는 것입니다.
+  틀렸다는 빨간 글씨를 보면서 고치는 중인데 그 글씨가 계속 남아 있으면
+  거슬리기 때문입니다.</p>
+
+  <h3>걸음 2 · 단추를 누르면 폼이 제출된다</h3>
+
+  <span class="file">components/start/api-key-form.tsx:111</span>
+<pre><code>&lt;form onSubmit={onSubmit} noValidate&gt;
+  ...
+  &lt;button className="btn btn-fill start-go" type="submit"&gt;
+    들어가기
+  &lt;/button&gt;
+&lt;/form&gt;</code></pre>
+
+  <p><code>type="submit"</code> 인 단추를 누르면 감싸고 있는 <code>&lt;form&gt;</code>
+  의 <code>onSubmit</code> 이 불립니다.</p>
+
+  <p><strong>입력칸에서 Enter 를 눌러도 똑같이 불립니다.</strong> 이건 우리가
+  따로 만든 게 아니라 브라우저가 원래 해 주는 일입니다. 그래서 마우스를 쓰지
+  않고도 키를 붙여넣고 바로 Enter 로 넘어갈 수 있습니다.</p>
+
+  <h3>걸음 3 · 새로고침을 막는 한 줄</h3>
+
+  <span class="file">components/start/api-key-form.tsx:49</span>
+<pre><code>function onSubmit(e: React.FormEvent&lt;HTMLFormElement&gt;) {
+  <span class="hl">e.preventDefault();</span>
+  ...</code></pre>
+
+  <p>폼이 제출되면 브라우저는 <strong>원래 하던 일</strong>을 하려고 합니다 —
+  적힌 값을 주소에 붙여 서버로 보내고 페이지를 새로 불러오는 것입니다.
+  아주 옛날 웹의 방식입니다.</p>
+
+  <p>지금은 그럴 필요가 없습니다. 우리가 직접 처리할 거니까요.
+  <code>e.preventDefault()</code> 가 <strong>“원래 하던 일은 하지 마”</strong>
+  라고 막는 한 줄입니다.</p>
+
+  <div class="warn">
+    <strong>헷갈리기 쉬운 점</strong>
+    <p>이 줄을 빼면 <strong>화면이 깜빡이며 처음부터 다시 로딩됩니다.</strong>
+    우리가 저장한 것도, 띄우려던 오류 문구도 다 날아갑니다.
+    “단추를 눌렀는데 화면이 새로고침되고 아무 일도 안 일어난다” 면
+    십중팔구 이 줄을 빠뜨린 것입니다.</p>
+  </div>
+
+  <h3>걸음 4 · 처리는 통째로 넘긴다</h3>
+
+  <span class="file">components/start/api-key-form.tsx:54</span>
+<pre><code>const result = enterWithApiKey(raw, browserApiKeyStore);
+//                              ↑          ↑
+//                     지금까지 모인 값   저장할 곳</code></pre>
+
+  <p><strong>화면의 일은 여기서 끝납니다.</strong> 검사도 저장도 직접 하지
+  않습니다. 그 안에서 무슨 일이 벌어지는지는 02번 문서에서 다뤘습니다.</p>
+
+  <p>화면이 아는 것은 두 가지뿐입니다 — <strong>무엇을 넘길지</strong>,
+  그리고 <strong>결과를 받아 무엇을 보여 줄지</strong>.</p>
+
+  <h3>걸음 5 · 결과를 받아 화면을 정한다</h3>
+
+  <span class="file">components/start/api-key-form.tsx:56</span>
+<pre><code>if (!result.ok) {
+  setMessage(apiKeyMessages[result.reason]);   // 실패 → 문구 띄우고
+  return;                                      //        여기서 끝
+}
+
+setMessage(null);   // 성공 → 오류 문구 치우고
+setRaw("");         //        입력칸 비우고
+                    //        ... 카드를 바꾸는 코드는 없다</code></pre>
+
+  <p><code>apiKeyMessages[result.reason]</code> 는 <strong>이유를 사람이 읽을
+  문구로 바꾸는</strong> 부분입니다. 대괄호로 꺼내는 이유는
+  <code>result.reason</code> 값이 그때그때 다르기 때문입니다.</p>
+
+<pre><code>result.reason 이 "empty" 이면
+    apiKeyMessages["empty"]  →  "키를 붙여넣어 주세요."
+
+result.reason 이 "storage" 이면
+    apiKeyMessages["storage"] →  "브라우저가 저장을 막고 있습니다. ..."</code></pre>
+
+  <p>도메인은 <code>"empty"</code> 라는 <strong>이유만</strong> 알려 주고,
+  사람에게 보여 줄 말은 화면이 정합니다. 그래서 문구를 고칠 때
+  <code>lib/domain</code> 을 건드릴 일이 없습니다.</p>
+
+  <h3>성공했는데 왜 카드를 바꾸는 코드가 없나</h3>
+
+  <p>성공 쪽을 보면 이상합니다. 오류 문구를 치우고 입력칸을 비우기만 할 뿐,
+  <strong>“이제 들어와 있습니다 화면을 보여 줘” 라는 코드가 없습니다.</strong></p>
+
+  <p>일부러 없는 것입니다. 저장하는 순간 어댑터가 “값이 바뀌었다” 고 알리고,
+  그 알림을 듣고 있던 React 가 알아서 다시 그립니다.</p>
+
+<pre><code>store.save(키)  →  localStorage 에 쓰기  →  notify()
+                                              ↓
+                              구독 중이던 화면이 다시 그려짐
+                                              ↓
+                          hasSaved 가 true 가 되어 카드가 교체됨</code></pre>
+
+  <p>이 구조 덕분에 <strong>화면이 여러 개여도 전부 같이 바뀝니다.</strong>
+  각 화면마다 “너도 바꿔라” 라고 시킬 필요가 없습니다.
+  자세한 것은 02번 문서의 “저장하면 화면이 저절로 바뀌는 이유” 절에 있습니다.</p>
+
+  <h3>전체를 한 장으로</h3>
+
+<pre><code>[입력]
+  키보드 → onChange → setRaw() → raw 에 쌓임
+                                   (값이 바뀔 때마다 반복)
+[제출]
+  단추 또는 Enter → onSubmit → e.preventDefault()
+                                   ↓
+[처리]                    enterWithApiKey(raw, store)
+                                   ↓
+                             checkApiKey()      규칙
+                                   ↓
+                             store.save()       저장
+                                   ↓
+                               notify()
+[반영]                             ↓
+                     구독 중이던 화면이 다시 그려짐
+                                   ↓
+                       "들어와 있습니다" 카드로 교체</code></pre>
+
+  <h2>3부 · 직접 확인해보기</h2>
+
+  <div class="step">
+    <h3>실험 1 · 글자마다 한 바퀴 도는 것을 눈으로 보기</h3>
+    <p><code>components/start/api-key-form.tsx</code> 의 <code>onChange</code> 에
+    한 줄을 넣으세요.</p>
+<pre><code>onChange={(e) =&gt; {
+  console.log("지금 raw:", e.target.value);   // ← 추가
+  setRaw(e.target.value);
+  setMessage(null);
+}}</code></pre>
+    <p><code>/start</code> 를 열고 <strong>F12 → Console 탭</strong>을 켠 뒤
+    입력칸에 <code>AIza</code> 를 천천히 쳐 보세요. 로그가 네 줄 쌓이고,
+    글자가 하나씩 늘어나는 것이 보입니다.</p>
+    <p>이번엔 아무 글자나 <strong>붙여넣기</strong> 해 보세요. 로그가
+    <strong>한 줄만</strong> 뜹니다. 확인했으면 지우세요.</p>
+  </div>
+
+  <div class="step">
+    <h3>실험 2 · 거울을 깨 보기</h3>
+    <p><code>value={raw}</code> 를 통째로 지워 보세요.</p>
+<pre><code>&lt;input
+  value={raw}      ← 이 줄을 지운다
+  onChange={...}</code></pre>
+    <p>글자는 여전히 쳐집니다. 하지만 <strong>“들어가기”를 눌러도 아무 일도
+    일어나지 않습니다.</strong> 화면에는 글자가 보이는데 <code>raw</code> 는
+    빈 문자열이라 “키를 붙여넣어 주세요” 가 뜹니다.</p>
+    <p>입력칸에 보이는 글자와 코드가 들고 있는 값이 <strong>따로 놀게 된
+    것</strong>입니다. 이게 <code>value={raw}</code> 가 하던 일입니다. 되돌리세요.</p>
+  </div>
+
+  <div class="step">
+    <h3>실험 3 · 새로고침 막는 줄을 빼 보기</h3>
+    <p><code>onSubmit</code> 의 <code>e.preventDefault();</code> 를 주석 처리하고
+    “들어가기” 를 눌러 보세요.</p>
+    <p><strong>화면이 깜빡이며 새로고침됩니다.</strong> 주소창을 보시면
+    <code>?</code> 가 붙어 있을 수도 있습니다 — 브라우저가 입력값을 주소에
+    붙여 서버로 보내려 한 흔적입니다. 되돌리세요.</p>
+  </div>
+
+  <div class="step">
+    <h3>실험 4 · 오류 문구가 언제 사라지는지</h3>
+    <p>입력칸을 비운 채 “들어가기” 를 눌러 오류 문구를 띄우세요.
+    그 다음 아무 글자나 한 자 쳐 보세요.</p>
+    <p><strong>문구가 즉시 사라집니다.</strong> <code>onChange</code> 안의
+    <code>setMessage(null)</code> 이 한 일입니다. 그 줄을 잠깐 지우면
+    글자를 쳐도 빨간 글씨가 계속 남아 있는 것을 볼 수 있습니다.</p>
+  </div>
+
+  <div class="warn">
+    <strong>헷갈리기 쉬운 점 — “다시 그린다”는 게 무슨 뜻인가</strong>
+    <p>글자를 칠 때마다 <code>ApiKeyForm</code> 함수가 <strong>처음부터 끝까지
+    다시 실행됩니다.</strong> 그런데도 <code>raw</code> 값이 초기화되지 않습니다.
+    <code>useState("")</code> 의 <code>""</code> 는 <strong>맨 처음 한 번만</strong>
+    쓰이고, 그 뒤로는 React 가 기억해 둔 값을 돌려주기 때문입니다.</p>
+    <p>또 하나 — “다시 그린다” 는 것이 화면을 통째로 지우고 새로 만든다는
+    뜻은 아닙니다. React 는 <strong>바뀐 곳만</strong> 골라 고칩니다.
+    그래서 글자를 쳐도 입력칸의 커서 위치가 유지됩니다.</p>
+  </div>
+
+</main>
+
+<footer class="doc-foot">
+  쿡파일럿 학습 노트 · <a href="index.html">목차로 돌아가기</a>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>쿡파일럿 학습 노트</title>
+<link rel="stylesheet" href="_assets/learn.css">
+</head>
+<body>
+
+<header class="doc-head">
+  <p class="doc-kicker">쿡파일럿</p>
+  <h1>학습 노트</h1>
+  <p class="doc-question">이 저장소의 코드를 교재 삼아 웹 개발을 배우는 기록입니다.</p>
+</header>
+
+<div class="summary">
+  <p>코드에 대해 궁금한 것이 생기면 Claude 에게 물어보세요.
+  터미널에 답하는 대신 이 폴더에 문서 한 장이 새로 생깁니다.
+  <strong>이 페이지를 북마크해 두면</strong> 지금까지 배운 것을 한눈에 볼 수 있습니다.</p>
+</div>
+
+<main>
+
+  <h2>목차</h2>
+
+  <ul class="toc">
+    <li>
+      <a href="01-export-const-type.html"><span class="n">01</span>export, const, type — 파일 하나가 밖으로 무엇을 내놓는가</a>
+      <p class="desc">파일끼리 값을 주고받는 방법, 값이 아니라 “모양”을 정하는 타입,
+      그리고 화면을 그리는 <code>map</code>·<code>=&gt;</code>·백틱까지.
+      <code>site-content.ts</code> 와 <code>hero.tsx</code> 를 예로 읽습니다.</p>
+    </li>
+    <li>
+      <a href="02-%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%8A%94-%EC%96%B4%EB%94%94%EB%A1%9C-%ED%9D%90%EB%A5%B4%EB%8A%94%EA%B0%80.html"><span class="n">02</span>데이터는 어디로 흐르는가 — API 키가 지나가는 길</a>
+      <p class="desc">키를 넣으면 값이 어느 파일을 차례로 거쳐 저장되는지,
+      그리고 <strong>import 방향과 데이터 방향이 왜 반대인지</strong>.
+      <code>lib/domain</code> · <code>lib/usecase</code> · <code>lib/adapter</code> 를 따라갑니다.</p>
+    </li>
+    <li>
+      <a href="03-%EC%9E%85%EB%A0%A5%EC%9D%84-%EB%B0%9B%EC%95%84-%EC%B2%98%EB%A6%AC%ED%95%98%EA%B8%B0%EA%B9%8C%EC%A7%80.html"><span class="n">03</span>입력을 받아 처리하기까지 — 키보드에서 저장까지</a>
+      <p class="desc">사용자가 친 글자가 어떻게 코드 안으로 들어오는지.
+      <code>useState</code> · <code>onChange</code> · <code>onSubmit</code> ·
+      <code>preventDefault</code> 를 실험 4개와 함께 봅니다.</p>
+    </li>
+    <li>
+      <a href="04-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-%EC%A0%84%EC%B2%B4-%EC%BD%94%EB%93%9C-%EC%9D%BD%EA%B8%B0.html"><span class="n">04</span>프로젝트 전체 코드 읽기 — 어느 파일부터 어떤 순서로</a>
+      <p class="desc">저장소의 파일 스무 개를 <strong>이해하기 쉬운 순서</strong>로 하나씩 따라 읽습니다.
+      <code>layout</code> → <code>page</code> → 부품 → <code>site-content</code> → <code>globals.css</code> →
+      <code>lib/</code> 순서로, 각 줄이 왜 있는지와 값이 어디로 흐르는지를 봅니다.
+      문서 안에 목차가 있어 필요한 자리로 바로 뛸 수 있습니다.</p>
+    </li>
+  </ul>
+
+  <h2>이 폴더의 규칙</h2>
+
+  <ul>
+    <li>문서는 <strong>HTML</strong> 로 만듭니다. PDF 는 바이너리라 git 이
+      바뀐 곳을 비교하지 못하고, 고칠 때마다 파일이 통째로 쌓입니다.</li>
+    <li><strong>인쇄가 필요하면 브라우저에서 Ctrl+P → “PDF 로 저장”</strong> 을
+      쓰세요. 인쇄용 스타일을 넣어 두어 그대로 깔끔하게 나옵니다.</li>
+    <li>보기를 바꾸고 싶으면 <code>_assets/learn.css</code> 한 파일만 고치면
+      문서 전부가 같이 바뀝니다.</li>
+    <li><strong>외부 자원(CDN 글꼴·이미지)을 쓰지 않습니다.</strong> 인터넷이
+      없거나 다른 컴퓨터에서 열어도 모양이 같아야 하기 때문입니다.</li>
+    <li>파일 이름은 <code>NN-슬러그.html</code>. 번호는 만든 순서입니다.</li>
+  </ul>
+
+  <div class="tip">
+    <strong>알아두면 좋은 것</strong>
+    <p>이 문서들은 git 에 커밋됩니다. 다른 컴퓨터에서 <code>git pull</code> 하면
+    그대로 따라옵니다. 대화 기록은 기계마다 따로 남지만, 배운 내용은 저장소가
+    들고 있습니다.</p>
+  </div>
+
+</main>
+
+<footer class="doc-foot">
+  쿡파일럿 학습 노트 · 문서를 만드는 규칙은 <code>.claude/agents/code-tutor.md</code> 에 있습니다.
+</footer>
+
+</body>
+</html>
