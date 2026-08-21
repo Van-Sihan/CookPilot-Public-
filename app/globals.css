@@ -397,21 +397,23 @@ header {
 /* ---------- 자주 묻는 질문 ---------- */
 .faq-sec { padding:clamp(64px, 9vw, 104px) 0; }
 .faq { max-width:800px; margin:0 auto; }
-details { border-top:1px solid var(--line); }
-details:last-of-type { border-bottom:1px solid var(--line); }
-summary {
+/* 아래 규칙은 모두 .faq 안에 가둔다. 맨 selector 로 두면 다른 곳의
+   <details> 까지 끌어가 버린다 (시작 페이지의 "자세한 사용법"이 그랬다) */
+.faq details { border-top:1px solid var(--line); }
+.faq details:last-of-type { border-bottom:1px solid var(--line); }
+.faq summary {
   list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between;
   gap:20px; padding:24px 2px; min-height:48px;
   font-family:var(--serif); font-size:19px; letter-spacing:-.015em;
 }
-summary::-webkit-details-marker { display:none; }
-summary i { position:relative; width:13px; height:13px; flex:0 0 13px; }
-summary i::before, summary i::after {
+.faq summary::-webkit-details-marker { display:none; }
+.faq summary i { position:relative; width:13px; height:13px; flex:0 0 13px; }
+.faq summary i::before, .faq summary i::after {
   content:""; position:absolute; left:0; top:6px; width:13px; height:1.5px;
   background:var(--fire-2); transition:transform .2s ease;
 }
-summary i::after { transform:rotate(90deg); }
-details[open] summary i::after { transform:rotate(0); }
+.faq summary i::after { transform:rotate(90deg); }
+.faq details[open] summary i::after { transform:rotate(0); }
 .ans { padding:0 2px 26px; }
 .ans p { margin:0; color:var(--paper-2); font-size:15.5px; max-width:58em; }
 
@@ -452,6 +454,304 @@ footer { border-top:1px solid var(--line); padding:44px 0 54px; margin-top:clamp
   .block { grid-template-columns:1fr 1fr; gap:clamp(48px, 6vw, 90px); }
   .block.text-right .bl-text { order:2; }
 }
+/* =====================================================================
+   시작 페이지 (/start)
+   홈과 같은 숯불 팔레트를 그대로 쓰되, 가로폭을 좀 더 좁히고
+   모든 것을 가운데로 모은다. 할 일이 하나뿐인 화면이라 시선이 갈라지면 안 된다.
+   ===================================================================== */
+.start { min-height:100dvh; padding:0 0 96px; }
+.start.glow::before {
+  background:
+    radial-gradient(46rem 30rem at 50% 4%, rgba(228,91,50,.16), transparent 62%),
+    radial-gradient(40rem 26rem at 50% 96%, rgba(185,68,50,.09), transparent 66%);
+}
+/* 카드까지 편하게 들어오는 너비. 본문 --maxw 보다 훨씬 좁다 */
+.start-wrap { max-width:720px; margin:0 auto; padding:0 var(--pad); position:relative; z-index:1; }
+
+/* ---------- 돌아가는 길 ---------- */
+.start-top { padding:22px var(--pad) 0; position:relative; z-index:2; }
+.start-back {
+  font-size:13.5px; color:var(--paper-3);
+  transition:color .18s;
+}
+.start-back:hover { color:var(--fire-2); }
+
+/* ---------- 로고와 이름 ---------- */
+.start-mast { text-align:center; padding:56px 0 0; }
+.start-mast > svg { margin:0 auto; }
+.start-name {
+  font-size:clamp(46px, 11vw, 68px); line-height:1.1; letter-spacing:-.01em;
+  margin:22px 0 0;
+}
+/* 한글 이름 아래에 각인처럼 받치는 라틴 표기 */
+.start-name-en {
+  font-family:var(--mono); font-size:11.5px; font-weight:500;
+  letter-spacing:.42em; text-transform:uppercase;
+  color:var(--fire-2); margin:10px 0 0; padding-left:.42em;
+}
+.start-tagline {
+  font-family:var(--serif); font-weight:600;
+  font-size:clamp(21px, 4.6vw, 27px); line-height:1.45;
+  color:var(--paper); margin:40px 0 0;
+}
+.start-sub { font-size:14.5px; color:var(--paper-2); margin:12px 0 0; }
+.start-rule { margin:52px 0 0; }
+
+/* ---------- 네 걸음 ---------- */
+.start-steps { margin:34px 0 0; }
+.start-steps ol {
+  display:grid; grid-template-columns:repeat(4, 1fr);
+  gap:8px; text-align:center;
+}
+.start-steps li { display:flex; flex-direction:column; gap:5px; }
+.st-n {
+  font-family:var(--mono); font-size:12px; font-weight:500;
+  color:var(--paper-3);
+}
+.st-t { font-size:14.5px; font-weight:700; color:var(--paper-3); }
+.st-s { font-size:12.5px; letter-spacing:.02em; color:var(--paper-3); opacity:.72; }
+/* 지금 서 있는 걸음만 불이 들어온다 */
+.start-steps li.on .st-n { color:var(--fire-2); }
+.start-steps li.on .st-t { color:var(--paper); }
+.start-steps li.on .st-s { color:var(--paper-2); opacity:1; }
+
+/* ---------- 자세한 사용법 ---------- */
+.start-how { margin:30px 0 0; border-top:1px solid var(--line); }
+.start-how summary {
+  display:flex; align-items:center; gap:10px;
+  padding:16px 2px; cursor:pointer; list-style:none;
+  font-size:13.5px; color:var(--paper-2);
+  border-bottom:1px solid var(--line);
+  transition:color .18s;
+}
+.start-how summary::-webkit-details-marker { display:none; }
+.start-how summary:hover { color:var(--paper); }
+/* 오른쪽을 가리키다 열리면 아래로 돌아간다 */
+.start-how-arrow {
+  width:6px; height:6px; flex:none;
+  border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor;
+  transform:rotate(-45deg); transition:transform .2s;
+}
+.start-how[open] .start-how-arrow { transform:rotate(45deg); }
+.start-how-body { padding:20px 2px 4px; display:grid; gap:20px; }
+.start-how-item h3 { font-size:15px; color:var(--paper); margin:0 0 6px; }
+.start-how-item p { font-size:13.5px; line-height:1.8; color:var(--paper-2); margin:0; }
+
+/* ---------- 키 입력 카드 ---------- */
+.start-card {
+  margin:40px 0 0; padding:clamp(24px, 5vw, 38px);
+  background:var(--bg-2); border:1px solid var(--line); border-radius:3px;
+  position:relative;
+}
+/* 삽화 카드들처럼 윗변에 머리카락 같은 밝은 선 하나 */
+.start-card::before {
+  content:""; position:absolute; top:0; left:1px; right:1px; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(247,240,227,.11), transparent);
+}
+.start-card-title {
+  display:flex; align-items:center; gap:11px;
+  font-size:23px; margin:0;
+}
+.start-card-ico { color:var(--fire-2); display:flex; }
+.start-card-lead {
+  font-size:13.5px; line-height:1.85; color:var(--paper-2);
+  margin:16px 0 0;
+}
+
+/* 입력칸 + 눈 단추를 한 면으로 묶는다 */
+.start-field { position:relative; margin:26px 0 0; }
+.start-input {
+  width:100%; height:56px; padding:0 52px 0 18px;
+  background:var(--bg); color:var(--paper);
+  border:1px solid var(--line-2); border-radius:2px;
+  font-family:var(--mono); font-size:13.5px; letter-spacing:.02em;
+  transition:border-color .18s;
+}
+.start-input::placeholder {
+  color:var(--paper-3); font-family:var(--sans); letter-spacing:0;
+}
+.start-input:focus { outline:none; border-color:var(--fire-2); }
+.start-input[aria-invalid="true"] { border-color:var(--fire-2); }
+/* 입력칸 안 오른쪽 끝에 앉는 눈 단추 */
+.start-peek {
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  width:40px; height:40px; display:flex; align-items:center; justify-content:center;
+  background:none; border:0; padding:0; cursor:pointer;
+  color:var(--paper-3); transition:color .18s;
+}
+.start-peek:hover { color:var(--paper); }
+
+.start-error { font-size:13px; line-height:1.7; color:var(--fire-2); margin:12px 0 0; }
+.start-go { width:100%; margin:22px 0 0; }
+.start-go:disabled { opacity:.42; cursor:not-allowed; }
+
+/* 이미 넣어 둔 키를 가린 채로 보여 줌 */
+.start-saved {
+  display:flex; align-items:center; gap:10px;
+  margin:22px 0 0; padding:14px 18px;
+  background:var(--bg-3); border:1px solid var(--line); border-radius:2px;
+  font-family:var(--mono); font-size:13px; color:var(--paper-2);
+}
+.start-saved-dot {
+  width:7px; height:7px; flex:none; border-radius:50%;
+  background:var(--fire-3); box-shadow:0 0 0 3px rgba(246,196,83,.14);
+}
+.start-change {
+  display:block; margin:16px auto 0; padding:6px;
+  background:none; border:0; cursor:pointer;
+  font-size:13px; color:var(--paper-3); text-decoration:underline;
+  text-underline-offset:3px; transition:color .18s;
+}
+.start-change:hover { color:var(--fire-2); }
+
+/* ---------- 키가 없는 사람을 위한 꼬리말 ---------- */
+/* 카드 바깥이라 카드와의 사이를 넉넉히 띄운다 */
+.start-help { margin:38px 0 0; }
+.start-note {
+  font-size:13px; letter-spacing:.01em; color:var(--paper-3);
+  text-align:center; margin:0;
+}
+.start-getkey {
+  display:flex; width:fit-content; margin:16px auto 0;
+  font-family:var(--mono); font-weight:500; letter-spacing:.01em;
+}
+.start-getkey-ico { color:var(--fire-3); display:flex; }
+
+/* 좁은 화면 — 네 걸음이 붙어 보여 글자를 줄인다 */
+@media (max-width:560px) {
+  .start-steps ol { gap:4px; }
+  .st-t { font-size:13px; }
+  .st-s { font-size:11px; }
+  .start-getkey { width:100%; }
+}
+
+
+/* =====================================================================
+   로그인 페이지 (/login) — design/login.png
+
+   여기만 잉걸불 색 하나를 더 쓴다. 시안의 로고와 제목이 주황이 아니라
+   살구빛이다. 검정 위에서 약 9:1 이라 제목 글자로 써도 안전하다.
+   ===================================================================== */
+
+:root { --ember:#F0A492; }   /* 로그인 화면의 로고·제목 전용 (9:1) */
+
+/* 화면 높이를 셋(위·가운데·아래)으로 나눠 카드가 늘 가운데 오게 한다.
+   내용이 적어도 꼬리말이 화면 중간에 떠 있지 않는다 */
+.login-top, .login-foot { padding-left:var(--pad); padding-right:var(--pad); }
+
+.login-top {
+  display:flex; align-items:center; justify-content:space-between;
+  height:84px; border-bottom:1px solid var(--line);
+}
+.login-logo {
+  font-family:var(--serif); font-size:26px; letter-spacing:-.01em;
+  color:var(--ember);
+}
+.login-logo:hover { color:var(--paper); }
+/* 아직 누를 수 없는 자리라 흐린 글자색으로 물러나 있다 */
+.login-account { color:var(--paper-3); display:flex; }
+
+/* 카드가 놓이는 자리. 위아래 여백을 넉넉히 두어 화면 한가운데로 끌어올린다 */
+.login { padding:clamp(48px, 9vw, 104px) var(--pad) clamp(56px, 9vw, 112px); }
+.login-wrap { max-width:472px; margin:0 auto; }
+
+/* 시작 페이지 카드와 같은 만듦새. 두 화면이 남처럼 보이면 안 된다 */
+.login-card {
+  padding:clamp(30px, 6vw, 46px) clamp(24px, 5vw, 40px);
+  background:var(--bg-2); border:1px solid var(--line); border-radius:3px;
+  position:relative;
+}
+.login-card::before {
+  content:""; position:absolute; top:0; left:1px; right:1px; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(247,240,227,.11), transparent);
+}
+
+.login-title {
+  font-family:var(--serif); font-size:clamp(1.9rem, 5vw, 2.3rem);
+  line-height:1.25; letter-spacing:-.02em; text-align:center;
+  color:var(--ember); margin:0;
+}
+.login-lead {
+  text-align:center; font-size:14px; color:var(--paper-2);
+  margin:14px 0 clamp(26px, 5vw, 38px);
+}
+
+/* 입력칸 + 왼쪽 그림을 한 면으로 묶는다 */
+.login-field { position:relative; margin:0 0 14px; }
+/* 그림을 칸 안 왼쪽 끝에 앉힌다. 세로 가운데를 잡으려고 절반 내렸다 다시 절반 올린다 */
+.login-field-ico {
+  position:absolute; left:18px; top:50%; transform:translateY(-50%);
+  display:flex; color:var(--paper-3); pointer-events:none;
+}
+.login-input {
+  width:100%; height:58px; padding:0 18px 0 50px;
+  background:var(--bg); color:var(--paper);
+  border:1px solid var(--line-2); border-radius:2px;
+  font-size:14.5px;
+  transition:border-color .18s;
+}
+.login-input::placeholder { color:var(--paper-3); }
+.login-input:focus { outline:none; border-color:var(--fire-2); }
+/* 칸에 초점이 가면 왼쪽 그림도 같이 밝아진다 */
+.login-input:focus + .login-field-ico,
+.login-field:focus-within .login-field-ico { color:var(--fire-2); }
+.login-input[aria-invalid="true"] { border-color:var(--fire-2); }
+
+.login-forgot { text-align:right; margin:0; font-size:13px; }
+.login-forgot a { color:var(--fire-2); }
+.login-forgot a:hover { text-decoration:underline; }
+
+.login-error {
+  font-size:13px; line-height:1.7; color:var(--fire-2);
+  margin:14px 0 0;
+}
+
+.login-go { width:100%; margin:22px 0 0; }
+.login-go:disabled { opacity:.55; cursor:not-allowed; }
+
+/* 로그인이 아직 안 되는 동안 남겨 두는 우회로. 단추보다 조용해야 한다 */
+.login-skip {
+  text-align:center; margin:20px 0 0; font-size:13px;
+}
+.login-skip a { color:var(--paper-3); }
+.login-skip a:hover { color:var(--fire-2); }
+
+/* 카드 밖 아래 줄 */
+.login-signup {
+  text-align:center; margin:26px 0 0; font-size:13.5px; color:var(--paper-2);
+}
+.login-signup a { color:var(--ember); text-decoration:underline; text-underline-offset:4px; }
+.login-signup a:hover { color:var(--paper); }
+
+/* 맨 아랫줄. 소개 페이지 꼬리말과 달리 글꼴이 고정폭이다 — 시안이 그렇다 */
+.login-foot {
+  display:flex; flex-direction:column; gap:22px; justify-content:space-between;
+  border-top:1px solid var(--line); padding-top:38px; padding-bottom:44px;
+  max-width:var(--maxw); margin:0 auto;
+}
+.login-foot-logo {
+  font-family:var(--serif); font-size:22px; color:var(--paper); margin:0;
+}
+.login-foot-copy {
+  font-family:var(--mono); font-size:12.5px; color:var(--paper-3); margin:10px 0 0;
+}
+.login-foot nav { display:flex; flex-wrap:wrap; gap:8px 26px; }
+.login-foot nav a {
+  font-family:var(--mono); font-size:12.5px; color:var(--paper-2);
+}
+.login-foot nav a:hover { color:var(--fire-2); }
+
+/* 넓은 화면에서는 시안처럼 로고와 링크를 좌우로 벌린다 */
+@media (min-width:761px) {
+  .login-foot { flex-direction:row; align-items:flex-end; }
+}
+
+/* 읽어 주는 기기에만 남기고 화면에서는 치우는 글 */
+.sr-only {
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
+
 @media (prefers-reduced-motion:reduce) {
   *, *::before, *::after { animation:none !important; transition:none !important; }
   html { scroll-behavior:auto; }

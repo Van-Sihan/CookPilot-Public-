@@ -1,17 +1,22 @@
 /**
- * 로고와 파형. 둘 다 같은 잉걸불 그라데이션(#B94432 → #E45B32 → #F6C453)을 쓴다.
- * SVG 그라데이션 id 는 문서 전체에서 유일해야 하므로 부르는 쪽에서 넘겨준다.
+ * 로고와 물결무늬. 둘 다 똑같은 불빛 색(#B94432 → #E45B32 → #F6C453)으로 칠한다.
+ * 이런 색 번짐에는 이름을 붙여야 하는데, 그 이름이 한 페이지 안에서 겹치면 안 된다.
+ * 그래서 부르는 쪽이 "나는 이 자리야" 하고 이름을 같이 넘겨준다.
  */
 
+/** 색이 번지는 세 지점. 로고와 물결무늬가 같은 불빛을 쓰도록 한 벌만 만들어 둔다 */
 const STOPS = (
   <>
+    {/* 맨 아래, 불이 사그라든 어두운 빨강 */}
     <stop offset="0%" stopColor="#B94432" />
+    {/* 활활 타는 주황. 절반이 아니라 45% 자리에 둬서 불꽃이 아래쪽에 몰리게 한다 */}
     <stop offset="45%" stopColor="#E45B32" />
+    {/* 맨 위, 튀어 오르는 밝은 불티 */}
     <stop offset="100%" stopColor="#F6C453" />
   </>
 );
 
-/** 냄비 아래에서 소리가 피어오르는 모양. design/logo.svg 와 같은 좌표. */
+/** 냄비 밑에서 소리가 피어오르는 모양. design/logo.svg 와 자리 값이 똑같다. */
 const LOGO_BARS: Array<[x: number, y: number, h: number]> = [
   [18.25, 107.4, 6.6],
   [25.42, 106.76, 7.24],
@@ -28,21 +33,29 @@ const LOGO_BARS: Array<[x: number, y: number, h: number]> = [
   [104.25, 107.4, 6.6],
 ];
 
+/** 로고 그리기. id 에는 이 로고가 놓이는 자리 이름을 준다 */
 export function Logo({ size = 30, id }: { size?: number; id: string }) {
+  /* 로고가 한 페이지에 여러 번 나오니, 자리 이름을 붙여서 색 이름이 겹치지 않게 한다 */
   const grad = `logo-grad-${id}`;
   return (
     <svg
+      // 부르는 쪽이 정한 크기. 그림이 아니라 선으로 그린 것이라 아무리 키워도 흐려지지 않는다
       width={size}
       height={size}
+      // 가로세로 128칸짜리 모눈종이 위에 그린다고 정해 둔다. 실제 크기와는 따로 논다
       viewBox="0 0 128 128"
+      // 색은 도형마다 따로 정해 주니 여기서는 비워 둔다
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      // 로고 옆에는 늘 이름 글씨가 같이 있어서, 읽어 주는 기계에는 이 그림을 숨긴다
       aria-hidden="true"
     >
       <defs>
         <linearGradient
           id={grad}
+          // 색을 그림 전체 기준으로 칠한다. 이걸 안 하면 막대마다 색이 처음부터 다시 시작해 버린다
           gradientUnits="userSpaceOnUse"
+          // 아래(114)에서 위(76)로 색이 올라간다. 그래야 불이 피어오르는 것처럼 보인다
           x1="0"
           y1="114"
           x2="0"
@@ -52,13 +65,18 @@ export function Logo({ size = 30, id }: { size?: number; id: string }) {
         </linearGradient>
       </defs>
       {/* 냄비 몸통과 뚜껑, 양쪽 손잡이 */}
+      {/* 아래로 갈수록 좁아지는 냄비 */}
       <path
         d="M30 34h68v14a24 24 0 0 1-24 24H54a24 24 0 0 1-24-24z"
         fill="#B94432"
       />
+      {/* 냄비보다 조금 넓게 걸쳐 놓은 뚜껑 */}
       <rect x="24" y="25" width="80" height="9" rx="4.5" fill="#B94432" />
+      {/* 오른쪽 손잡이 */}
       <path d="M104 36h10a6 6 0 0 1 0 12h-10z" fill="#B94432" />
+      {/* 왼쪽 손잡이 */}
       <path d="M24 36H14a6 6 0 0 0 0 12h10z" fill="#B94432" />
+      {/* 냄비 밑에서 피어오르는 소리 막대들. 가로 자리 값이 다 달라서 그걸 이름표로 쓴다 */}
       {LOGO_BARS.map(([x, y, h]) => (
         <rect
           key={x}
@@ -66,7 +84,9 @@ export function Logo({ size = 30, id }: { size?: number; id: string }) {
           y={y}
           width="5.5"
           height={h}
+          // 너비의 딱 절반이라 막대 끝이 완전히 동그래진다
           rx="2.75"
+          // 위에서 만든 색 번짐을 가져다 칠한다
           fill={`url(#${grad})`}
         />
       ))}
@@ -74,16 +94,17 @@ export function Logo({ size = 30, id }: { size?: number; id: string }) {
   );
 }
 
-/** 대화 카드 발치에 놓이는 작은 파형. 숨 쉬듯 위아래로 움직인다. */
+/** 대화 카드 밑에 놓이는 작은 물결무늬. 숨 쉬듯 위아래로 움직인다. */
 const SMALL_BARS = [4.2, 6.06, 13.86, 13.8, 16.51, 18.37, 10.51, 5.98, 4.2];
 
-/** 마무리 구역을 받치는 큰 파형. 정지 상태. */
+/** 마지막 구역을 받쳐 주는 큰 물결무늬. 이건 움직이지 않는다. */
 const LARGE_BARS = [
   7.2, 7.2, 15.74, 24.45, 20.68, 38.48, 46.73, 33.96, 55.46, 62.06, 42.23,
   63.64, 67.64, 43.89, 61.63, 62.42, 38.5, 49.89, 47.27, 26.88, 30.57, 24.87,
   11.07, 7.43, 7.2,
 ];
 
+/** 물결무늬 그리기. 작은 것과 큰 것은 막대 값만 다르고 그리는 방법은 똑같다 */
 export function Waveform({
   variant,
   id,
@@ -91,28 +112,41 @@ export function Waveform({
   variant: "sm" | "lg";
   id: string;
 }) {
+  /* 로고와 똑같이, 자리 이름을 붙여서 색 이름이 겹치지 않게 한다 */
   const grad = `wave-grad-${id}`;
+  /* 아래 값이 전부 "작은 거냐 큰 거냐" 에 달려 있어서, 한 번만 물어보고 담아 둔다 */
   const sm = variant === "sm";
+  /* 어느 막대 값 묶음을 쓸지 */
   const bars = sm ? SMALL_BARS : LARGE_BARS;
+  /* 막대 하나의 폭 */
   const w = sm ? 3.5 : 6;
+  /* 막대를 몇 칸씩 띄워 놓을지. 막대 너비보다 커야 사이가 벌어져 보인다 */
   const step = sm ? 6.1 : 12;
+  /* 그림 전체 높이 */
   const height = sm ? 24 : 86;
+  /* 막대 수에 맞춰 전체 너비를 구한다. 마지막 막대가 잘리지 않게 막대 너비를 한 번 더 더해 준다 */
   const width = step * (bars.length - 1) + w;
+  /* 색이 다 올라가는 높이. 가장 긴 막대 끝쯤에 둬야 색이 끝까지 다 보인다 */
   const top = sm ? 4 : 16;
 
   return (
     <svg
+      // 위에서 구해 둔 크기를 그대로 쓴다
       width={width}
       height={height}
+      // 모눈종이 크기도 똑같이 맞춘다. 그래야 막대 자리 값을 고치지 않아도 된다
       viewBox={`0 0 ${width} ${height}`}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      // 그냥 꾸미기용이라 읽어 주는 기계에는 숨긴다
       aria-hidden="true"
     >
       <defs>
         <linearGradient
           id={grad}
+          // 색을 그림 전체 기준으로 칠한다. 이걸 안 하면 막대마다 색이 처음부터 다시 시작해 버린다
           gradientUnits="userSpaceOnUse"
+          // 바닥에서 위로 색이 올라간다
           x1="0"
           y1={height}
           x2="0"
@@ -121,16 +155,23 @@ export function Waveform({
           {STOPS}
         </linearGradient>
       </defs>
+      {/* 막대 값은 서로 같을 수도 있어서 몇 번째인지를 이름표로 쓴다. 순서가 안 바뀌니 괜찮다 */}
       {bars.map((h, i) => (
         <rect
           key={i}
+          // 작은 물결무늬만 CSS 로 위아래로 움직인다
           className={sm ? "bar" : undefined}
+          // 막대마다 시작을 조금씩 늦춘다. 그래야 물결이 옆으로 번지는 것처럼 보인다
           style={sm ? { animationDelay: `${(i * 0.09).toFixed(2)}s` } : undefined}
+          // 간격을 곱해서 막대를 나란히 세운다
           x={(i * step).toFixed(2)}
+          // 컴퓨터 그림은 맨 위가 0 이다. 그래서 바닥에서 높이를 빼야 막대가 아래에 선다
           y={(height - h).toFixed(2)}
           width={w}
           height={h}
+          // 너비의 딱 절반이라 막대 끝이 완전히 동그래진다
           rx={w / 2}
+          // 위에서 만든 색 번짐을 가져다 칠한다
           fill={`url(#${grad})`}
         />
       ))}
