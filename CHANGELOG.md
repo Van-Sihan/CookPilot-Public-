@@ -13,6 +13,47 @@
 
 ---
 
+## 2026-08-24 — 버셀 배포 준비
+
+**요청**
+
+버셀로 배포한다. 아직 가입 전이니 준비만. 사람이 손으로 할 일과
+알려 줘야 할 것을 단계로 정리해 줄 것.
+
+**한 일**
+
+- `docs/deploy/vercel.md` — 배포 절차 9단계.
+  단계마다 🧑(사람이 하는 일) · 🤖(값만 주면 처리) · ✅(끝난 일)을 표시했다
+- `.env.example` — 필요한 환경 변수 7개(필수 4 · 선택 3)와 각각의 출처.
+  `.gitignore` 의 `.env*` 에 `!.env.example` 예외를 더해 이 파일만 올라가게 했다
+- `app/layout.tsx` — 배포 주소를 고르는 차례를 셋으로 늘렸다
+  `NEXT_PUBLIC_SITE_URL` → 버셀 운영 도메인 → `localhost:3000`.
+  처음 배포할 때는 도메인이 정해지기 전이라 직접 적어 둘 수가 없어서,
+  그 사이에 링크 미리보기가 localhost 를 가리키는 것을 막는다
+
+**건드린 파일** — 새로 만듦: `docs/deploy/vercel.md` · `.env.example` /
+고침: `app/layout.tsx` · `.gitignore`
+
+**확인**
+
+- `npm run build` 통과. TypeScript 오류 0, 라우트 21개
+- `.env.example` 이 `git add` 대상에 들어가는 것을 확인
+- **배포를 막을 자리 두 곳을 미리 점검했다**
+  - `samples/reviews.csv` 는 `process.cwd()` 로 읽지만
+    `.next/server/app/api/kitchen/index/route.js.nft.json` 에 포함되어 있다.
+    `outputFileTracingIncludes` 불필요
+  - 원격 이미지를 그리는 `<Image>` 8곳 중 6곳이 `unoptimized`, 나머지 둘은
+    로컬 경로와 이미 등록된 `i.ytimg.com`. `remotePatterns` 변경 불필요
+
+**남긴 것**
+
+- `vercel.json` 은 만들지 않았다. Next.js 는 버셀이 자동 인식하고 지금 구조에
+  지정할 것이 없다. Supabase 리전을 알려 주면 함수 리전을 고정해 준다
+- 가입 · 프로젝트 가져오기 · 환경 변수 붙여넣기 · 마이그레이션 · Supabase Auth
+  Site URL · 후기 색인은 모두 사람이 해야 한다. 절차 문서에 적었다
+
+---
+
 ## 2026-08-24 — 기능명세서 · HIPO 엑셀 생성 (docs/spec/CookPilot_기능명세서_HIPO.xlsx)
 
 **요청**

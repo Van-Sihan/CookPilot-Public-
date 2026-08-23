@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# 값이 빠진 견본은 올린다. 배포할 때 어떤 변수가 필요한지 알려 주는 파일이다
+!.env.example
 
 # vercel
 .vercel

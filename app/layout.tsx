@@ -59,14 +59,23 @@ const nanumGothicCoding = Nanum_Gothic_Coding({
   display: "swap",
 });
 
+/* 배포 주소를 고르는 차례. 직접 넣은 값이 가장 앞이고, 없으면 버셀이 넣어 주는
+   운영 도메인을 쓰고, 그것도 없으면 개발용 주소로 둔다.
+   가운데 단계를 둔 까닭 — 처음 배포할 때는 도메인이 정해지기 전이라
+   NEXT_PUBLIC_SITE_URL 을 미리 적어 둘 수가 없다. 그 사이에도 링크 미리보기가
+   localhost 를 가리키지 않게 하는 장치다 */
+// 버셀이 배포할 때 스스로 넣어 주는 운영 도메인. 규약(https://)이 빠져 있다
+const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+// 앞에서부터 있는 값을 고른다. 버셀 값에는 규약을 붙여야 URL 로 읽힌다
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (vercelHost ? `https://${vercelHost}` : "http://localhost:3000");
+
 export const metadata: Metadata = {
   /* 링크 미리보기 그림의 주소를 절대 주소로 만들 때 쓰는 뿌리.
      글마다 요리 사진이 붙는데, "/food/ribeye.jpg" 만 내보내면 카카오톡이나
-     슬랙이 어느 서버의 그림인지 몰라 아무것도 못 띄운다.
-     배포한 주소를 환경 변수로 넣어 주면 그것을 쓰고, 없으면 개발용 주소로 둔다 */
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
-  ),
+     슬랙이 어느 서버의 그림인지 몰라 아무것도 못 띄운다 */
+  metadataBase: new URL(siteUrl),
   title: {
     // 홈에서 보이는 제목. 한글 이름과 영어 이름을 같이 둬서 어느 쪽으로 검색해도 걸리게 한다
     default: `${site.nameKo} ${site.name} — ${site.tagline}`,
