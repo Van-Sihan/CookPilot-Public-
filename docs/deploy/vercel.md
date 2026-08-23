@@ -21,6 +21,7 @@ CookPilot 을 버셀에 올리는 순서다. **각 단계에 "누가 하는 일"
 | 배포 주소 자동 인식 | 버셀 운영 도메인을 링크 미리보기 뿌리로 쓰도록 처리 (`app/layout.tsx`) |
 | CSV 번들 포함 | `samples/reviews.csv` 가 서버리스 번들에 들어가는 것을 빌드 산출물에서 확인 |
 | 이미지 호스트 | 원격 이미지는 모두 `unoptimized` 또는 등록된 호스트. 설정 변경 불필요 |
+| Supabase 마이그레이션 | 5개 전부 적용 완료. 표 · 칸 · 버킷 · 정책 · 트리거 확인함 (5단계) |
 
 **버셀 설정 파일(`vercel.json`)은 만들지 않았다.** Next.js 프로젝트는 버셀이 자동으로
 인식하고, 지금 구조에는 따로 지정할 것이 없다. 리전을 고정하고 싶어지면 그때 만든다.
@@ -71,14 +72,16 @@ Import 화면의 **Environment Variables** 를 펼치고 아래를 넣는다.
 
 끝나면 `cookpilot-v2-xxxx.vercel.app` 같은 주소가 나온다. **이 주소를 적어 둔다.**
 
-> 이 시점에는 **로그인과 커뮤니티가 아직 동작하지 않는다.** 5·6단계를 해야 한다.
+> 마이그레이션(5단계)은 끝나 있으므로 표는 이미 준비돼 있다. 다만 **가입 확인
+> 메일 링크가 아직 `localhost` 로 간다.** 6단계를 해야 로그인 흐름이 완성된다.
 
 ---
 
-## 5. Supabase 마이그레이션 적용 🧑
+## 5. Supabase 마이그레이션 적용 ✅ (2026-08-24 완료)
 
-Supabase 대시보드 → **SQL Editor** 에서 아래 5개를 **번호 순서대로** 실행한다.
-이미 적용한 것은 건너뛴다.
+**다섯 개 모두 적용을 마쳤다.** 아래는 기록이며, 새 Supabase 프로젝트를 만들 때
+다시 밟을 순서다. 대시보드 → **SQL Editor** 에 파일 전체를 붙여넣고 번호 순서대로
+한 번씩 실행한다. 이 파일들은 재실행에 안전하지 않으니 **한 번만** 돌린다.
 
 ```
 supabase/migrations/
@@ -86,7 +89,7 @@ supabase/migrations/
 ├─ 20260822120100_create_posts.sql
 ├─ 20260823090000_create_reviews_and_chats.sql
 ├─ 20260823140000_post_images_and_covers.sql
-└─ 20260824090000_likes_bookmarks_comments_avatars.sql   ← 아직 안 돌림
+└─ 20260824090000_likes_bookmarks_comments_avatars.sql
 ```
 
 **무엇이 이미 적용됐는지 확인하는 법** — SQL Editor 에서:
@@ -107,7 +110,27 @@ where table_schema = 'public' order by table_name;
 `profiles.avatar_url` 칸, `avatars` 스토리지 버킷, 좋아요 수 트리거.
 **이게 없으면 좋아요 · 즐겨찾기 · 댓글 · 프로필 이미지가 동작하지 않는다.**
 
-스토리지 버킷 두 개(`post-covers` · `avatars`)가 생겼는지도 확인한다.
+### 적용 결과 확인 (2026-08-24)
+
+| 항목 | 기대 | 실제 |
+| --- | --- | --- |
+| 표 `post_likes` · `post_bookmarks` · `post_comments` | 3 | 3 |
+| `profiles.avatar_url` 칸 | 1 | 1 |
+| 버킷 `post-covers` · `avatars` | 2 | 2 |
+| 표 정책 | 10 | 10 |
+| 스토리지 정책 | 4 | 4 |
+| 트리거 | 2 | 2 |
+| 함수 `sync_post_like_count` | 1 | 1 |
+
+트리거를 셀 때 `information_schema.triggers` 를 쓰면 **이벤트마다 한 줄**이 나온다.
+`post_likes_sync_count` 는 `after insert or delete` 라 두 줄이 되어 합이 3으로 보인다.
+객체 수로 세려면 `pg_trigger` 를 쓴다.
+
+```sql
+select tgname, tgrelid::regclass from pg_trigger
+where not tgisinternal
+  and tgname in ('post_likes_sync_count','post_comments_touch_updated_at');
+```
 
 ---
 
@@ -173,7 +196,7 @@ curl "https://<배포 주소>/api/kitchen/index?q=김치찌개"
 | 커뮤니티 목록 | `/community` 에 글이 보이는가 | Supabase URL · 키 확인 |
 | 회원가입 | `/signup` → 확인 메일 링크가 배포 주소로 오는가 | 6단계 |
 | 요리 | `/start` 에 Gemini 키 입력 → `/pick` | 키는 브라우저마다 새로 넣어야 한다 |
-| 좋아요 · 댓글 | 글 하나에 눌러 보기 | 5단계 마지막 마이그레이션 |
+| 좋아요 · 댓글 | 글 하나에 눌러 보기 | 마이그레이션은 적용됨. 로그인 상태와 예시 글(uuid 아님) 여부 확인 |
 | 프로필 이미지 | `/account` 에서 올려 보기 | `avatars` 버킷 |
 | AI 상담 | `/ask` 에 질문 | 8단계 색인 |
 
