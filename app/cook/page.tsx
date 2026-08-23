@@ -17,6 +17,9 @@ export const metadata: Metadata = {
  *
  * 이 파일은 서버에서 한 번 그려지고 끝난다. 마이크도 타이머도 CookShell 안에 있다.
  */
+// [F1][함수] CookPage(): 요리 화면 (/cook) — 네 걸음 중 넷째
+// 입력: 없음 → 처리: StepTrack(4) + CookShell 배치 → 출력: 화면(JSX)
+// 마이크·타이머·걸음 옮기기는 전부 components/cook/cook-shell.tsx 안에 있다
 export default function CookPage() {
   return (
     <>

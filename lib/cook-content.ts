@@ -42,6 +42,21 @@ export const shopCopy = {
   stepsLabel: "전체 순서",
   // 쿡파일럿이 만든 레시피일 때 출처 자리에 적히는 말
   sourceAi: "쿡파일럿이 만든 기본 레시피입니다",
+  /* ---------- 유튜브에서 옮겨 왔을 때 ----------
+     여기만 말이 여럿인 까닭 — 남의 영상에서 옮겨 온 것이라
+     "어디서" 왔는지를 한눈에 알아볼 수 있게 그림과 제목까지 함께 보여 준다.
+     한 줄로 "유튜브에서 가져왔습니다" 라고만 하면 우리가 지어낸 것과 구별이 안 된다 */
+  // 미리보기 그림 위에 붙는 줄
+  youtubeFrom: "이 영상에서 옮겨 왔습니다",
+  // 채널 이름 앞에 붙는 말
+  youtubeChannel: "채널",
+  // 영상으로 가는 링크
+  youtubeOpen: "유튜브에서 영상 보기",
+  // 영상 제목을 못 받아 왔을 때 그 자리에 대신 적는 말
+  youtubeNoTitle: "영상 제목을 못 받았습니다",
+  // 옮겨 온 것이지 우리가 만든 것이 아니라는 다짐
+  youtubeMind:
+    "쿡파일럿이 만든 레시피가 아니라 위 영상의 내용을 옮겨 적은 것입니다. 분량과 순서가 영상과 다를 수 있으니 영상도 함께 보세요.",
   // 서재에서 꺼낸 레시피일 때
   sourceShelf: "서재에서 꺼낸 레시피입니다",
   // 커뮤니티 글에서 가져온 레시피일 때. 뒤에 적은 사람 이름이 붙는다
@@ -85,11 +100,16 @@ export const sponsoredItems: readonly SponsoredItem[] = [
  * "고추장" 이 "간장" 보다 먼저 걸려야 한다 — 둘 다 "장" 으로 끝나지만
  * 낱말 전체로 견주므로 섞이지 않는다. 먼저 걸린 것 하나만 쓴다.
  */
+// [F1][함수] sponsoredFor(ingredient): 재료 이름에 걸리는 광고를 찾는다
+// 입력: ingredient(재료 이름) → 처리: [반복] sponsoredItems 를 훑어 처음 걸리는 것
+// 출력: SponsoredItem 또는 null → shop-shell 이 재료 밑에 광고 줄을 붙인다
 export function sponsoredFor(ingredient: string): SponsoredItem | null {
   return sponsoredItems.find((s) => ingredient.includes(s.match)) ?? null;
 }
 
 /** 값을 "12,900원" 처럼 적는다 */
+// [F2][함수] wonText(price): 값을 '12,900원' 처럼 적는다
+// 입력: price(숫자) → 처리: toLocaleString('ko-KR') → 출력: 문자열
 export function wonText(price: number): string {
   // 세 자리마다 쉼표. 한국어 자리표기라 ko-KR 로 못 박는다
   return `${price.toLocaleString("ko-KR")}원`;
@@ -101,6 +121,8 @@ export function wonText(price: number): string {
 export const cookCopy = {
   // 스피커 단추의 이름표. 눈에는 안 보이고 읽어 주는 기계와 마우스 설명에만 쓰인다
   readAloud: "이 걸음 소리로 듣기",
+  // 읽는 중일 때의 이름표. 같은 단추가 멈추는 단추로 바뀐다
+  readStop: "읽기 멈추기",
   // 마이크 묶음의 제목
   askLabel: "물어보기",
   // 마이크가 꺼져 있을 때. 이 화면은 들어오면 알아서 켜지므로, 이 글이 보인다는 것은
@@ -158,6 +180,8 @@ export const planMessages = {
   "not-youtube": "유튜브 주소가 아닙니다. youtube.com 또는 youtu.be 로 시작하는 주소를 붙여넣어 주세요.",
   // 냉장고 재료가 너무 적을 때
   "too-few": "재료를 두 가지 이상 적어 주세요. 쉼표로 나눠 적으면 됩니다.",
+  // 그 재료로 만들 수 있는 요리를 하나도 못 찾았을 때
+  "no-idea": "이 재료로 만들 만한 요리를 못 찾았습니다. 재료를 몇 가지 더 적어 주세요.",
   key: "API 키가 거절되었습니다. 시작 화면에서 키를 다시 넣어 주세요.",
   shape: "레시피를 만들다가 모양이 어긋났습니다. 한 번 더 해 보세요.",
   "empty-steps": "조리 순서를 못 받았습니다. 한 번 더 해 보세요.",
@@ -212,16 +236,61 @@ export const coverTones = ["ember", "herb", "cocoa", "cream"] as const;
 /** 표지 색조 하나 */
 export type CoverTone = (typeof coverTones)[number];
 
-/** 색조마다 표지에 칠할 두 색. 요리 완성 화면과 글쓰기 화면이 함께 쓴다 */
-export const coverColors: Record<CoverTone, [string, string]> = {
+/** 표지 한 장에 쓰는 색들 */
+export type CoverPalette = {
+  /** 바탕. 종이 색이다 */
+  paper: string;
+  /** 큰 글자 — 요리 이름, 재료 이름, 순서 글 */
+  ink: string;
+  /** 흐린 글자 — 분량, 인분, 날짜 */
+  dim: string;
+  /** 머리말과 번호. 이 색 하나가 표지의 성격을 정한다 */
+  accent: string;
+  /** 테두리와 가는 선 */
+  line: string;
+};
+
+/**
+ * 색조마다 표지에 칠할 색들. 요리 완성 화면과 글쓰기 화면이 함께 쓴다.
+ *
+ * 어두운 바탕에 위아래 그라데이션을 깔던 것을 **밝은 종이**로 바꿨다.
+ * 표지는 화면에서만 보는 것이 아니라 그림 파일로 내려받아 인쇄하거나
+ * 다른 곳에 올리는 것이라, 어두운 바탕은 잉크만 먹고 글씨는 안 읽힌다.
+ * 색조는 이제 종이 빛깔과 머리말 색으로 갈린다.
+ */
+export const coverColors: Record<CoverTone, CoverPalette> = {
   // 잉걸불 — 이 서비스의 기본 색
-  ember: ["#C2502F", "#5B1E12"],
+  ember: {
+    paper: "#FDF4E6",
+    ink: "#2A1710",
+    dim: "#8A6A55",
+    accent: "#C2502F",
+    line: "rgba(194,80,47,.24)",
+  },
   // 허브
-  herb: ["#4E7A46", "#1B2C1A"],
+  herb: {
+    paper: "#F3F7EC",
+    ink: "#1C2A19",
+    dim: "#5F7256",
+    accent: "#4E7A46",
+    line: "rgba(78,122,70,.24)",
+  },
   // 카카오
-  cocoa: ["#6B4630", "#2A1912"],
+  cocoa: {
+    paper: "#F7F0E8",
+    ink: "#2A1912",
+    dim: "#7C6151",
+    accent: "#6B4630",
+    line: "rgba(107,70,48,.24)",
+  },
   // 크림
-  cream: ["#B99B62", "#3B2E19"],
+  cream: {
+    paper: "#FBF6EA",
+    ink: "#2E2515",
+    dim: "#87775A",
+    accent: "#A6803C",
+    line: "rgba(166,128,60,.26)",
+  },
 };
 
 export const coverToneLabels: Record<(typeof coverTones)[number], string> = {

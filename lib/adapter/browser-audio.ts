@@ -37,6 +37,8 @@ export type Mic = {
 export type MicResult = { ok: true; mic: Mic } | { ok: false; problem: MicProblem };
 
 /** 브라우저가 왜 거절했는지를 우리가 쓰기로 한 낱말로 바꾼다 */
+// [F1][함수] micProblem(err): getUserMedia 오류를 우리 낱말로 바꾼다
+// 입력: err → 처리: DOMException 이름 대조 → 출력: 'denied'|'missing'|'failed'
 function micProblem(err: unknown): MicProblem {
   // DOMException 이 아니면 뜻을 알아낼 길이 없다
   const name = err instanceof DOMException ? err.name : "";
@@ -58,10 +60,14 @@ function micProblem(err: unknown): MicProblem {
  * 이러면 브라우저가 알아서 16kHz 로 바꿔 준다 — 우리가 직접 칸을 솎아 내면
  * 소리가 거칠어지고 코드도 길어진다.
  */
+// [F2][함수] openMic(): 마이크를 열고 소리 조각을 흘려보낼 손잡이를 만든다
+// 입력: 없음 → 처리: 권한 요청 → 워크릿 로드 → 그래프 연결 → 출력: MicResult (비동기)
 export async function openMic(): Promise<MicResult> {
   /* https 가 아니거나 아주 오래된 브라우저면 이 자리가 아예 비어 있다 */
+  // [F3][분기] 이 브라우저에 마이크 길이 없음 → true: 'missing' 반환 / false: F4
   if (!navigator.mediaDevices?.getUserMedia) return { ok: false, problem: "missing" };
 
+  // [F4][외부] ▷ navigator.mediaDevices.getUserMedia() — 권한 창이 뜬다 → stream
   let stream: MediaStream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({
@@ -75,10 +81,12 @@ export async function openMic(): Promise<MicResult> {
       },
     });
   } catch (err) {
+    // [F5][에러] 거절·없음·실패 → micProblem(F1) 로 까닭을 정해 반환
     return { ok: false, problem: micProblem(err) };
   }
 
   // 16kHz 로 달라고 못 박는다. 브라우저가 맞춰 준다
+  // [F6][흐름] 16kHz AudioContext 생성 → ctx (제미나이가 받는 속도에 맞춘다)
   const ctx = new AudioContext({ sampleRate: INPUT_RATE });
 
   try {
@@ -88,10 +96,12 @@ export async function openMic(): Promise<MicResult> {
     // 일꾼을 못 올렸으면 마이크를 놓아 주고 물러난다
     stream.getTracks().forEach((t) => t.stop());
     void ctx.close();
+    // [F7][에러] 워크릿 파일을 못 읽음 → 마이크·소리장치를 도로 놓고 'failed' 반환
     return { ok: false, problem: "failed" };
   }
 
   // 마이크에서 오는 소리를 이 장치 안으로 끌어들이는 입구
+  // [F8][흐름] stream → source → node(pcm-collector) · meter(소리 크기) · mute 로 잇는다
   const source = ctx.createMediaStreamSource(stream);
 
   // 아까 올린 일꾼을 실제로 세운다
@@ -117,6 +127,7 @@ export async function openMic(): Promise<MicResult> {
   const meterData = new Uint8Array(meter.frequencyBinCount);
 
   // WAV 로 만들 때 쓰려고 지나간 소리를 모아 둔다
+  // [F9][흐름] 보낸 조각을 kept 에 모아 둔다(나중에 WAV 로 묶어 쓴다)
   const kept: Int16Array[] = [];
 
   // 밖에서 걸어 둔 손. 아직 없으면 null
@@ -124,6 +135,7 @@ export async function openMic(): Promise<MicResult> {
 
   node.port.onmessage = (e: MessageEvent<Float32Array>) => {
     // -1~1 짜리 소수를 16비트 정수로 옮긴다. 제미나이가 그 모양을 받는다
+    // [F10][호출] 워크릿이 보낸 Float32 → floatToPcm16(F12) → pcm → kept 에 쌓고 hand 로 흘림
     const pcm = floatToPcm16(e.data);
 
     // 나중에 통째로 WAV 를 만들 수 있게 챙겨 둔다
@@ -133,6 +145,9 @@ export async function openMic(): Promise<MicResult> {
     hand?.(pcm);
   };
 
+  // [F11][반환] {ok:true, mic} → live-console 이 onChunk·level·stop 을 쓴다
+  // mic.onChunk(fn): 조각이 올 때마다 fn 호출 / mic.level(): 지금 소리 크기 0~1
+  // mic.toWav(): 모아 둔 조각을 WAV base64 로 / mic.stop(): 마이크와 소리장치를 놓는다
   return {
     ok: true,
     mic: {
@@ -174,9 +189,12 @@ export async function openMic(): Promise<MicResult> {
 }
 
 /** -1~1 짜리 소수를 16비트 정수로 옮긴다 */
+// [F12][함수] floatToPcm16(input): -1~1 소수를 16비트 정수로 옮긴다
+// 입력: Float32Array → 처리: 값 자르기 후 곱하기 → 출력: Int16Array
 function floatToPcm16(input: Float32Array): Int16Array {
   const out = new Int16Array(input.length);
 
+  // [F13][반복] 칸마다 -1~1 로 자른 뒤 정수 범위로 옮겨 out 에 담는다
   for (let i = 0; i < input.length; i += 1) {
     /* 마이크가 세면 1을 넘는 값이 온다. 그대로 곱하면 값이 넘쳐서
        가장 큰 소리가 가장 작은 소리로 뒤집힌다. 그래서 먼저 잘라 낸다 */
@@ -190,6 +208,8 @@ function floatToPcm16(input: Float32Array): Int16Array {
 }
 
 /** 모아 둔 PCM 조각들을 WAV 파일 한 장으로 만들어 base64 로 돌려준다 */
+// [F14][함수] wavBase64(chunks, rate): 모아 둔 조각을 WAV 파일 글자로 만든다
+// 입력: chunks + rate → 처리: 44바이트 머리말 + 소리 데이터 → 출력: base64 문자열
 function wavBase64(chunks: readonly Int16Array[], rate: number): string {
   // 전체 칸 수를 먼저 센다. 머리말에 크기를 적어야 하기 때문이다
   const total = chunks.reduce((n, c) => n + c.length, 0);
@@ -232,6 +252,7 @@ function wavBase64(chunks: readonly Int16Array[], rate: number): string {
 
   // 조각을 차례로 옮겨 적는다
   let at = 44;
+  // [F15][반복] chunks 를 훑으며 버퍼에 이어 붙인다
   for (const chunk of chunks) {
     for (let i = 0; i < chunk.length; i += 1) {
       view.setInt16(at, chunk[i], true);
@@ -239,6 +260,7 @@ function wavBase64(chunks: readonly Int16Array[], rate: number): string {
     }
   }
 
+  // [F16][호출] buffer → toBase64(F17) → base64 → planFromSpeech 가 제미나이로 실어 보낸다
   return toBase64(new Uint8Array(buffer));
 }
 
@@ -248,6 +270,8 @@ function wavBase64(chunks: readonly Int16Array[], rate: number): string {
  * 한 번에 다 넘기지 않고 잘라서 넘기는 까닭 — String.fromCharCode 에 수십만 개를
  * 한꺼번에 넘기면 브라우저가 "인자가 너무 많다" 며 터진다. 긴 녹음에서 실제로 난다.
  */
+// [F17][함수] toBase64(bytes): 바이트를 base64 글자로
+// 입력: Uint8Array → 처리: 0x8000 씩 잘라 이어 붙임(한 번에 하면 스택이 넘친다) → 출력: 문자열
 export function toBase64(bytes: Uint8Array): string {
   // 한 번에 다룰 개수. 넉넉하면서도 안 터지는 크기다
   const step = 0x8000;
@@ -261,6 +285,8 @@ export function toBase64(bytes: Uint8Array): string {
 }
 
 /** base64 글자를 바이트로 되돌린다. 제미나이가 보낸 소리를 풀 때 쓴다 */
+// [F18][함수] fromBase64(s): base64 글자를 바이트로
+// 입력: 문자열 → 처리: atob 후 한 칸씩 옮김 → 출력: Uint8Array (gemini-live-gateway 가 쓴다)
 export function fromBase64(s: string): Uint8Array {
   // 한 글자씩 코드로 바꾸면 그게 곧 바이트다
   const raw = atob(s);
@@ -275,8 +301,11 @@ export function fromBase64(s: string): Uint8Array {
  * 조각이 올 때마다 그냥 재생하면 서로 겹치거나 사이가 벌어져 말이 뚝뚝 끊긴다.
  * 그래서 "다음 조각은 언제 시작할지" 를 직접 세어 가며 줄을 세운다.
  */
+// [F19][함수] openSpeaker(): 안내 목소리를 이어 트는 스피커를 연다
+// 입력: 없음 → 출력: {push, unblock, cut, close}
 export function openSpeaker() {
   // 제미나이가 보내 주는 초당 칸 수에 맞춘다
+  // [F20][흐름] 24kHz AudioContext 생성 → ctx (제미나이가 보내 주는 속도)
   const ctx = new AudioContext({ sampleRate: OUTPUT_RATE });
 
   /* 다음 조각이 시작될 시각. 지금까지 넣은 소리가 다 끝나는 때다.
@@ -290,6 +319,9 @@ export function openSpeaker() {
 
   return {
     /** 소리 한 조각을 줄 끝에 붙인다 */
+    // [F21][함수] push(pcm): 소리 한 조각을 줄 끝에 붙인다
+    // 입력: pcm(바이트) → 처리: 16비트로 다시 읽어 버퍼 생성 → nextAt 시각에 예약 재생
+    // 출력: 없음 (▷ 스피커로 소리가 나간다)
     push(pcm: Uint8Array) {
       // 바이트를 16비트 정수로 다시 읽는다. 두 바이트가 한 칸이다
       const view = new DataView(pcm.buffer, pcm.byteOffset, pcm.byteLength);
@@ -339,6 +371,8 @@ export function openSpeaker() {
     },
 
     /** 막힌 스피커를 푼다. 사람이 뭔가를 누른 뒤에 불러야 풀린다 */
+    // [F22][함수] unblock(): 브라우저가 막아 둔 소리를 푼다
+    // 입력: 없음 → 처리: ▷ ctx.resume() → 출력: 풀렸는지 boolean
     async unblock() {
       try {
         /* 이미 열려 있는지 먼저 보지 않고 그냥 부른다. 열려 있으면 아무 일도
@@ -358,6 +392,8 @@ export function openSpeaker() {
      * 예약해 둔 소리를 하나씩 멈추는 것이 요점이다 — 시각만 되돌려 놓으면
      * 이미 예약된 소리는 그대로 다 나가서, 새 안내와 겹쳐 두 사람이 말하는 것처럼 들린다.
      */
+    // [F23][함수] cut(): 예약해 둔 소리를 모두 버린다(사람이 말을 끊었을 때)
+    // 입력: 없음 → 처리: queued 를 훑어 stop() → 출력: 없음
     cut() {
       for (const node of queued) {
         try {
@@ -375,6 +411,8 @@ export function openSpeaker() {
     },
 
     /** 스피커를 닫는다 */
+    // [F24][함수] close(): 스피커를 닫는다
+    // 입력: 없음 → 처리: cut 후 ▷ ctx.close() → 출력: 없음
     close() {
       void ctx.close();
     },

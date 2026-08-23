@@ -28,9 +28,13 @@ import {
   watchShelf,
 } from "@/lib/usecase/keep-recipe-shelf";
 
+// [F1][함수] PickShell({children}): 고르기 화면의 껍데기(왼쪽 기둥 + 가운데)
+// 입력: children(가운데에 놓일 것) → 처리: 설정·서재·인분을 한곳에서 쥔다 → 출력: 화면(JSX)
+// 마이크 자리와 카드가 같은 servings 를 봐야 해서 여기 모았다
 export function PickShell({ children }: { children: React.ReactNode }) {
   /* 이번 방문에 몇 번 물었는지. 새로 고치면 0 으로 돌아간다 —
      "이번 세션" 이라는 말 그대로라서 일부러 담아 두지 않는다 */
+  // [F2][흐름] 이번 방문에 몇 번 물었는지 → asked / 몇 인분인지 → servings
   const [asked, setAsked] = useState(0);
 
   /* 몇 인분으로 만들지. 마이크 칸과 아래 카드들이 함께 보는 값이라
@@ -49,6 +53,7 @@ export function PickShell({ children }: { children: React.ReactNode }) {
    * 보통 쓰는 useState 로는 못 따라간다. 그래서 "바깥 값 지켜보기" 도구를 쓴다.
    * 서버에서 그릴 때는 늘 기본값이라고 답하게 해 두었다.
    */
+  // [F3][외부] ▷ useSyncExternalStore(watchSetup, findCookSetup) → setup
   const setup = useSyncExternalStore(
     // 값이 바뀌면 알려 달라고 부탁하는 길
     watchSetup,
@@ -65,6 +70,7 @@ export function PickShell({ children }: { children: React.ReactNode }) {
   );
 
   /* 서재에 꽂힌 권수. 숫자 하나라 값이 같으면 다시 그리지도 않는다 */
+  // [F4][외부] ▷ useSyncExternalStore(watchBooks, countShelfBooks) → books(권수)
   const books = useSyncExternalStore(
     // 서재가 바뀌면 알려 달라고 부탁하는 길
     watchBooks,
@@ -75,6 +81,9 @@ export function PickShell({ children }: { children: React.ReactNode }) {
   );
 
   /** 왼쪽 기둥에서 속도를 바꿨을 때. 담아 두면 지켜보던 쪽이 알아서 다시 그린다 */
+  // [F5][함수] onSpeed(speed): 왼쪽 기둥에서 답변 속도를 바꿨을 때
+  // 입력: speed → 처리: keepCookSetup(usecase:F1) ▷ localStorage → 출력: 없음
+  // 담기면 F3 이 알아채고 카드의 모델 별명 줄도 함께 바뀐다
   function onSpeed(speed: AnswerSpeed) {
     // 말투는 그대로 두고 속도만 갈아 끼운다
     keepCookSetup({ ...setup, speed }, browserCookSetupStore);

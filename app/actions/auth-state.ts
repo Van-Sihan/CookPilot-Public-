@@ -12,6 +12,10 @@
  * 할 수가 없다. 그래서 값과 타입은 이렇게 평범한 파일로 따로 빼 둔다.
  */
 
+// [F1][데이터] 로그인·가입 폼이 서버와 주고받는 쪽지의 생김새(타입 선언만)
+// 실행 흐름 없음. 쓰는 곳: app/actions/auth.ts · components/login·signup/*-form.tsx
+// "use server" 파일은 async 함수 말고는 못 내보내서 여기 따로 둔다
+
 import type { SignInResult } from "@/lib/usecase/sign-in";
 import type { SignUpResult } from "@/lib/usecase/sign-up";
 

@@ -717,6 +717,9 @@ export const communityPosts: readonly CommunityPost[] = [
  * 화면이 `posts.filter(...)` 를 직접 쓰지 않게 하려고 둔다.
  * 나중에 이 자리가 데이터베이스 조회로 바뀔 때 고칠 곳이 한 군데면 된다.
  */
+// [F1][함수] postsByTab(tab): 그 탭에 걸린 예시 글만 고른다
+// 입력: tab → 처리: communityPosts 를 훑어 tabs 에 tab 이 든 것만 → 출력: CommunityPost[]
+// [F1][반환] 목록 → app/community/page.tsx 가 카드로 그린다
 export function postsByTab(tab: CommunityTab): readonly CommunityPost[] {
   return communityPosts.filter((p) => p.tabs.includes(tab));
 }
@@ -730,6 +733,9 @@ export function postsByTab(tab: CommunityTab): readonly CommunityPost[] {
  * 어느 칸을 뒤지는지가 이 함수의 값어치다. 제목만 뒤지면 "브랜드" 나
  * 셰프 이름으로는 못 찾는다.
  */
+// [F2][함수] postsByQuery(query): 검색어로 예시 글을 고른다(탭은 안 본다)
+// 입력: query → 처리: [반복] 글마다 matchesQuery(domain/community-tab:F8) → 출력: CommunityPost[]
+// 제목·글쓴이·카테고리·설명을 함께 뒤진다 — 태그 링크도 이 길로 들어온다
 export function postsByQuery(query: string): readonly CommunityPost[] {
   return communityPosts.filter((p) =>
     matchesQuery([p.title, p.chef, p.badge, p.summary ?? ""], query),
@@ -743,6 +749,8 @@ export function postsByQuery(query: string): readonly CommunityPost[] {
  * 두는 까닭은 postsByTab() 과 같다 — 나중에 이 자리가 데이터베이스 조회로
  * 바뀔 때 고칠 곳이 한 군데면 된다.
  */
+// [F3][함수] findPost(id): 예시 글 카드 하나를 id 로 찾는다
+// 입력: id → 처리: communityPosts 훑기 → 출력: CommunityPost 또는 null
 export function findPost(id: string): CommunityPost | null {
   return communityPosts.find((p) => p.id === id) ?? null;
 }
@@ -912,8 +920,20 @@ export const pickCopy = {
   fridgeLabel: "지금 있는 재료",
   fridgePlaceholder: "두부, 계란, 김치, 대파",
   fridgeNote:
-    "쉼표로 나눠 적으면 됩니다. 적어 준 재료를 되도록 많이 쓰고, 소금·간장처럼 집에 흔한 것만 보탭니다.",
-  find: "요리 찾기",
+    "있는 것만 적으면 됩니다. 기본 양념은 안 적어도 알아서 뺍니다",
+  find: "만들 수 있는 요리 찾기",
+  // 후보를 늘어놓은 자리의 제목. 뒤에 몇 개인지 붙는다
+  ideasLabel: "이 재료로 이런 걸 만들 수 있습니다",
+  // 후보 카드의 단추
+  ideaMake: "이 요리 만들기",
+  // 사야 하는 것이 있을 때 앞에 붙는 말
+  ideaMissing: "사야 할 것",
+  // 사야 할 것이 없을 때
+  ideaHaveAll: "가진 재료만으로 됩니다",
+  // 다른 재료로 다시 찾는 단추
+  ideaAgain: "재료 고쳐서 다시 찾기",
+  // 후보를 고르고 레시피를 만드는 동안
+  ideaWorking: "레시피 만드는 중…",
   // 브랜드 칸
   brandLabel: "이런 모습으로 붙습니다",
   brandStart: "이 레시피로 시작",

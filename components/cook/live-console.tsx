@@ -60,6 +60,10 @@ type Props = {
   onReady: (say: ((text: string) => void) | null) => void;
 };
 
+// [F1][함수] LiveConsole({recipe, gender, tone, stepIndex, onSaid, onTimer, onCommand, onReady})
+// 요리 화면의 마이크 자리 — 제미나이 라이브와 말을 주고받는다
+// 입력: 레시피·목소리·지금 걸음 + 껍데기가 준 손잡이 넷 → 출력: 화면(JSX)
+// 흐름: 마이크 → PCM → 게이트웨이 → 안내 목소리 → 스피커 (글로도 와서 명령을 걸러 낸다)
 export function LiveConsole({
   recipe,
   gender,
@@ -71,6 +75,7 @@ export function LiveConsole({
   onReady,
 }: Props) {
   /* 지금 어떤 상태인지. 단추 모습과 안내 글이 이 값을 보고 바뀐다 */
+  // [F2][흐름] 지금 상태 → phase / 잔소리 → error / 소리가 막혔는지 → muted
   const [phase, setPhase] = useState<"off" | "opening" | "live">("off");
 
   /* 잘못됐을 때 띄우는 말 */
@@ -83,6 +88,7 @@ export function LiveConsole({
   const barsRef = useRef<(HTMLSpanElement | null)[]>([]);
 
   /* 지금 열려 있는 것들. 끌 때 다 거둬야 한다 */
+  // [F3][흐름] 열어 둔 것들 → micRef · speakerRef · sessionRef · frameRef (끌 때 다 거둔다)
   const micRef = useRef<Mic | null>(null);
   const speakerRef = useRef<Speaker | null>(null);
   const sessionRef = useRef<LiveSession | null>(null);
@@ -91,9 +97,11 @@ export function LiveConsole({
   /* 이 화면에 들어와서 한 번이라도 말동무를 불러 봤는지.
      React 는 개발 중에 효과를 두 번 돌려 보는데, 그때 웹소켓이 두 개 열리면
      같은 말이 두 번 들린다 */
+  // [F4][흐름] 한 번이라도 불러 봤는지 → triedRef (개발 중 효과가 두 번 돌 때 웹소켓이 두 개 열린다)
   const triedRef = useRef(false);
 
   /* 껍데기가 넘겨준 손들. 그리는 도중이 아니라 그린 뒤에 담는다 */
+  // [F5][흐름] 껍데기가 준 손잡이들 → handsRef (그리는 도중이 아니라 그린 뒤에 담는다)
   const handsRef = useRef({ onSaid, onTimer, onCommand, onReady });
   useEffect(() => {
     handsRef.current = { onSaid, onTimer, onCommand, onReady };
@@ -102,6 +110,8 @@ export function LiveConsole({
   /* 지금 걸음을 늘 최신으로 들고 있는다.
      말동무를 부르는 함수는 한 번만 만들어지는데, 그 안에서 stepIndex 를 그대로 쓰면
      불렀을 때의 값이 박제되어 첫 걸음만 계속 읽는다 */
+  // [F6][흐름] 지금 걸음 → stepRef / 걸음 목록 → stepsRef
+  // start 는 한 번만 만들어지므로 값을 그대로 가두면 첫 걸음만 계속 읽는다
   const stepRef = useRef(stepIndex);
   useEffect(() => {
     stepRef.current = stepIndex;
@@ -114,6 +124,9 @@ export function LiveConsole({
   }, [recipe.steps]);
 
   /** 걸어 둔 것을 모두 거둔다 */
+  // [F7][함수] stop(): 걸어 둔 것을 모두 거둔다
+  // 입력: 없음 → 처리: 세션 닫기 → 마이크 놓기 → 스피커 닫기 → 출력: 없음
+  // 차례가 중요하다 — 보내는 쪽을 먼저 끊어야 한다
   const stop = useCallback(() => {
     cancelAnimationFrame(frameRef.current);
 
@@ -143,10 +156,16 @@ export function LiveConsole({
    * 사람이 한 말에서만 찾는다. 안내가 "3분 볶으세요" 라고 한 것까지 타이머로 걸면
    * 시키지도 않은 알람이 계속 울린다.
    */
+  // [F8][함수] handleHeard(text): 사람이 한 말에서 명령을 찾아 처리한다
+  // 입력: text(사람이 한 말) → 처리: readStepCommand + readTimerRequest → 출력: 없음
+  // **사람이 한 말에서만** 찾는다. 안내가 '3분 볶으세요' 라고 한 것까지 타이머로 걸면 안 된다
   const handleHeard = useCallback(
     (text: string) => {
+      // [F9][호출] text → readStepCommand(domain/cook-progress:F20) → cmd
       const cmd = readStepCommand(text);
 
+      // [F10][분기] cmd 가 있음 → speaker.cut() 으로 모델의 군말을 끊고
+      // 'repeat' 이면 여기서 다시 읽히고, 'next'·'prev' 면 껍데기의 onCommand 로 올려 보낸다
       if (cmd) {
         /* 모델이 이 명령에 스스로 대꾸하고 있을 수 있다. 시키지 않은 그 말을
            끊어야 곧 이어질 걸음 읽기와 겹치지 않는다 */
@@ -169,6 +188,8 @@ export function LiveConsole({
       }
 
       // "3분 타이머해줘"
+      // [F11][호출] text → readTimerRequest(domain/cook-progress:F10) → minutes
+      // [F11][분기] minutes 가 있으면 → onTimer('말로 건 타이머', minutes) → cook-shell 의 addAlarm
       const minutes = readTimerRequest(text);
       if (minutes) handsRef.current.onTimer("말로 건 타이머", minutes);
     },
@@ -176,10 +197,14 @@ export function LiveConsole({
   );
 
   /** 말동무를 부른다 */
+  // [F12][함수] start(): 말동무를 부른다
+  // 입력: 없음 → 처리: 키 확인 → 마이크 → 스피커 → 웹소켓 → 첫 걸음 읽기 → 막대 그리기
+  // 출력: 없음(비동기)
   const start = useCallback(async () => {
     setError(null);
 
     // 키가 없으면 이어질 데가 없다
+    // [F13][호출] findSavedKey(usecase:F7) → key. 없으면 안내를 띄우고 멈춘다
     const key = findSavedKey(browserApiKeyStore);
     if (!key) {
       setError("API 키가 없습니다. 시작 화면에서 먼저 키를 넣어 주세요.");
@@ -189,6 +214,7 @@ export function LiveConsole({
     setPhase("opening");
 
     // 마이크부터 연다. 여기서 막히면 말동무를 불러 봐야 소용없다
+    // [F14][외부] ▷ openMic(browser-audio:F2) → opened. 못 열면 까닭을 띄우고 멈춘다
     const opened = await openMic();
     if (!opened.ok) {
       setPhase("off");
@@ -198,6 +224,7 @@ export function LiveConsole({
     micRef.current = opened.mic;
 
     // 안내 목소리를 낼 스피커
+    // [F15][외부] ▷ openSpeaker(browser-audio:F19) → speaker → unblock() 으로 소리를 풀어 본다
     const speaker = openSpeaker();
     speakerRef.current = speaker;
 
@@ -207,6 +234,9 @@ export function LiveConsole({
 
     let session: LiveSession;
     try {
+      // [F16][외부] {recipe, gender, tone} ▷ geminiLiveGateway(key).open(gemini-live-gateway:F2)
+      // 콜백으로 오는 것: 'open' → phase / 'audio' → speaker.push / 'interrupted' → speaker.cut
+      // 'said' → onSaid + (사람 말이면) handleHeard(F8) / 'closed' → 까닭을 띄우고 stop(F7)
       session = await geminiLiveGateway(key).open({ recipe, gender, tone }, (e) => {
         // 이어졌다
         if (e.kind === "open") setPhase("live");
@@ -243,13 +273,16 @@ export function LiveConsole({
     sessionRef.current = session;
 
     // 껍데기가 글로 한마디 건넬 수 있게 길을 넘겨준다
+    // [F17][호출] onReady(say) → cook-shell 의 sayRef 에 담긴다(스피커 단추가 이 길을 쓴다)
     handsRef.current.onReady((text: string) => session.say(text));
 
     // 마이크 조각이 올 때마다 그대로 흘려보낸다
+    // [F18][반복] 마이크 조각이 올 때마다 ▷ session.send(pcm) 으로 흘려보낸다
     opened.mic.onChunk((pcm) => session.send(pcm));
 
     /* 이어지자마자 지금 걸음을 읽어 준다. 이 화면에 들어온 사람이 가장 먼저
        듣고 싶은 것이 그것이다 */
+    // [F19][호출] readStepNote(usecase/cook-along:F6) → ▷ session.say() — 들어오자마자 지금 걸음을 읽어 준다
     session.say(
       readStepNote(
         stepRef.current,
@@ -260,6 +293,7 @@ export function LiveConsole({
 
     /** 소리 크기를 막대에 옮긴다 */
     const levels = new Float32Array(BAR_COUNT);
+    // [F20][반복] requestAnimationFrame 으로 한 컷씩 — mic.level() 을 막대 높이에 옮긴다
     const draw = () => {
       const loud = micRef.current?.level() ?? 0;
 
@@ -280,6 +314,7 @@ export function LiveConsole({
    * 한 번만 부르도록 표시를 남긴다. 개발 중에 React 가 효과를 두 번 돌려 보는데,
    * 그때 웹소켓이 두 개 열리면 같은 걸음을 두 번 읽는다.
    */
+  // [F21][분기] 아직 안 불러 봤으면 → true: start(F12) 를 한 번 부른다(자동으로 켜진다)
   useEffect(() => {
     if (triedRef.current) return;
     triedRef.current = true;
@@ -289,6 +324,8 @@ export function LiveConsole({
   /* 걸음이 바뀌면 그 걸음을 읽어 준다.
      처음 이어질 때 읽는 것은 위 start 가 맡으므로 여기서는 바뀔 때만 본다 */
   const firstRef = useRef(true);
+  // [F22][분기] 걸음이 바뀌었나? 처음 한 번은 건너뛰고(start 가 이미 읽었다),
+  // 그 뒤로는 ▷ session.say(readStepNote(...)) 로 새 걸음을 읽어 준다
   useEffect(() => {
     // 처음 한 번은 건너뛴다. 안 그러면 들어오자마자 두 번 읽는다
     if (firstRef.current) {

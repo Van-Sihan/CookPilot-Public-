@@ -45,20 +45,27 @@ export type DisplayNameCheck =
  * 글자 종류는 보지 않는다. 이모지를 쓰든 한자를 쓰든 남에게 보이는 이름일 뿐이고,
  * 막아 봐야 비슷하게 생긴 글자로 피해 갈 수 있어서 규칙만 늘어난다.
  */
+// [F1][함수] checkDisplayName(raw): 닉네임을 받아 줄지 판정
+// 입력: raw(가입·계정설정 입력칸 글자) → 처리: 공백 제거 후 길이 검사 → 출력: DisplayNameCheck
 export function checkDisplayName(raw: string): DisplayNameCheck {
   /* 앞뒤 빈칸을 떼어 낸다. 이걸 안 하면 "  " 두 칸짜리 이름이 두 글자로 통과한다 */
+  // [F2][흐름] raw → trim() → name
   const name = raw.trim();
 
   // 아무것도 안 적었을 때. 짧은 것과는 다른 상황이라 따로 알린다
+  // [F3][분기] name.length === 0 → true: 'name-empty' 반환 / false: F4
   if (name.length === 0) return { ok: false, problem: "name-empty" };
 
   // 한 글자짜리
+  // [F4][분기] name.length < MIN_DISPLAY_NAME(2) → true: 'name-short' 반환 / false: F5
   if (name.length < MIN_DISPLAY_NAME) return { ok: false, problem: "name-short" };
 
   /* 너무 길 때. 여기서 잘라서 통과시키지 않는다 —
      사람이 적은 이름이 말없이 바뀌어 있으면 더 당황스럽다 */
+  // [F5][분기] name.length > MAX_DISPLAY_NAME(20) → true: 'name-long' 반환 / false: F6
   if (name.length > MAX_DISPLAY_NAME) return { ok: false, problem: "name-long" };
 
   // 통과했으니 이제야 도장을 찍어 돌려준다
+  // [F6][반환] name → {ok:true, name} → 호출한 유스케이스(sign-up · rename-me)로 전달
   return { ok: true, name: name as DisplayName };
 }

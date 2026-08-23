@@ -17,9 +17,12 @@ import {
 } from "@/lib/domain/measure";
 import { measureUnitLabels } from "@/lib/site-content";
 
+// [F1][함수] MeasureTool(): 계량 단위를 바꿔 보는 작은 도구
+// 입력: 없음 → 처리: 적은 분량과 두 단위를 도메인에 넘겨 셈 → 출력: 화면(JSX)
 export function MeasureTool() {
   /* 입력칸에 적혀 있는 글자. 숫자로 바꾸지 않고 글자 그대로 쥐고 있어야
      "1." 처럼 아직 덜 적은 상태에서도 글자가 튀지 않는다 */
+  // [F2][흐름] 입력칸 글자 → amount / 고른 단위 → from, to (셋 다 브라우저 상태)
   const [amount, setAmount] = useState("1");
 
   /* 어느 단위에서 */
@@ -29,6 +32,8 @@ export function MeasureTool() {
   const [to, setTo] = useState<MeasureUnit>("ml");
 
   /* 셈 결과. 숫자로 못 읽는 값이면 도메인이 null 을 돌려준다 */
+  // [F3][호출] Number(amount) + from + to → convertMeasure(domain/measure:F2) → result
+  // [F3][분기] result 가 null(숫자가 아니거나 음수) → 화면이 셈 결과 자리를 비운다
   const result = convertMeasure(Number(amount), from, to);
 
   return (
@@ -62,6 +67,7 @@ export function MeasureTool() {
           /* 목록에서 고른 값이라 늘 맞지만, 그래도 도메인을 한 번 거쳐서 받는다 */
           onChange={(e) => setFrom(resolveMeasureUnit(e.target.value))}
         >
+          {/* [F4][반복] measureUnits 를 훑어 '어느 단위에서' 목록을 그린다 */}
           {measureUnits.map((u) => (
             // 속이름을 값으로 쓰고, 보이는 글씨는 site-content 가 정한다
             <option key={u} value={u}>
@@ -93,6 +99,7 @@ export function MeasureTool() {
           value={to}
           onChange={(e) => setTo(resolveMeasureUnit(e.target.value))}
         >
+          {/* [F5][반복] measureUnits 를 훑어 '어느 단위로' 목록을 그린다 */}
           {measureUnits.map((u) => (
             <option key={u} value={u}>
               {measureUnitLabels[u]}

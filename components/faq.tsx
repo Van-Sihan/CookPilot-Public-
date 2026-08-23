@@ -1,6 +1,8 @@
 import { faqs } from "@/lib/site-content";
 
 /** 자주 묻는 질문. <details> 라서 자바스크립트 없이도 눌러서 열고 닫을 수 있다. */
+// [F1][함수] Faq(): 소개 페이지의 자주 묻는 말 묶음
+// 입력: 없음(lib/site-content 의 faqs) → 처리: 목록을 접이칸으로 → 출력: 화면(JSX)
 export function Faq() {
   return (
     // 위쪽 메뉴의 "자주 묻는 질문" 을 누르면 이 이름표를 찾아 내려온다
@@ -16,6 +18,7 @@ export function Faq() {
         {/* 질문 목록. 칸 사이 간격과 줄은 CSS 가 맡는다 */}
         <div className="faq">
           {/* 질문 글이 서로 겹치지 않으니 그걸 그대로 이름표로 쓴다 */}
+          {/* [F2][반복] faqs 를 훑어 물음·답 접이칸을 하나씩 그린다 */}
           {faqs.map((f) => (
             <details key={f.q}>
               {/* 접혀 있을 때 보이는 줄. 누르면 답이 펼쳐진다 */}

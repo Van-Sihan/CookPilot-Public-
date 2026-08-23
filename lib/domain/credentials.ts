@@ -42,11 +42,14 @@ export type CredentialsCheck =
  * 그 규칙은 가입할 때 정해지는 것이고, 로그인은 이미 만들어진 값을 받는 자리다.
  * 여기서 "8글자 이상" 같은 것을 막으면 예전에 짧게 만든 사람이 못 들어온다.
  */
+// [F1][함수] checkCredentials(rawEmail, rawPassword): 로그인 값을 받아 줄지 판정
+// 입력: rawEmail + rawPassword(로그인 폼) → 처리: 이메일 모양·빈값 검사 → 출력: CredentialsCheck
 export function checkCredentials(
   rawEmail: string,
   rawPassword: string,
 ): CredentialsCheck {
   // 복사해서 붙이면 앞뒤에 빈칸이 딸려 오는 일이 많다. 이메일은 떼어 낸다
+  // [F2][흐름] rawEmail → trim() → email / rawPassword → (그대로) → password
   const email = rawEmail.trim();
 
   // 비밀번호는 앞뒤 빈칸도 진짜 글자일 수 있어서 손대지 않는다.
@@ -54,20 +57,25 @@ export function checkCredentials(
   const password = rawPassword;
 
   // 아무것도 안 적고 눌렀을 때
+  // [F3][분기] email 이 빔 → true: 'email-empty' 반환 / false: F4
   if (email.length === 0) return { ok: false, problem: "email-empty" };
 
   // 골뱅이 자리를 찾는다. 없으면 -1 이 온다
+  // [F4][흐름] email → indexOf('@') → at
   const at = email.indexOf("@");
 
   // 골뱅이가 아예 없거나, 맨 앞이거나(앞이 빔), 맨 뒤면(뒤가 빔) 주소가 될 수 없다
+  // [F5][분기] 골뱅이가 없거나 맨 앞·맨 뒤 → true: 'email-shape' 반환 / false: F6
   if (at <= 0 || at === email.length - 1) {
     return { ok: false, problem: "email-shape" };
   }
 
   // 비밀번호는 비었는지만 본다
+  // [F6][분기] password 가 빔 → true: 'password-empty' 반환 / false: F7
   if (password.length === 0) return { ok: false, problem: "password-empty" };
 
   // 여기까지 왔으면 검사를 통과한 것이니 이제야 도장을 찍어 돌려준다
+  // [F7][반환] {ok:true, email, password} → signIn(sign-in) · checkNewCredentials(F8) 로 전달
   return {
     ok: true,
     email: email as Email,
@@ -108,6 +116,8 @@ export type NewCredentialsCheck =
  * 그런 규칙은 사람을 `Password1!` 같은 뻔한 값으로 몰아가서
  * 길이를 넉넉히 두는 것보다 오히려 약해진다는 것이 알려져 있다.
  */
+// [F8][함수] checkNewCredentials(rawEmail, rawPassword, rawConfirm): 가입 값을 판정
+// 입력: 이메일+비밀번호+확인 → 처리: 공통 검사(F1) 후 길이·일치 추가 검사 → 출력: NewCredentialsCheck
 export function checkNewCredentials(
   rawEmail: string,
   rawPassword: string,
@@ -115,22 +125,27 @@ export function checkNewCredentials(
 ): NewCredentialsCheck {
   // 이메일 모양과 "비밀번호가 비었는가" 는 로그인과 규칙이 똑같다.
   // 여기서 다시 쓰면 규칙이 두 군데로 갈라져 한쪽만 고치는 일이 생긴다
+  // [F9][호출] rawEmail, rawPassword → checkCredentials(F1) → base
   const base = checkCredentials(rawEmail, rawPassword);
 
   // 공통 검사에서 걸렸으면 가입만의 규칙은 볼 것도 없다
+  // [F10][분기] base.ok → false: base(까닭)를 그대로 반환 / true: F11
   if (!base.ok) return base;
 
   // 여기서만 보는 규칙 하나 — 너무 짧은가
+  // [F11][분기] 8자 미만 → true: 'password-short' 반환 / false: F12
   if (base.password.length < MIN_PASSWORD_LENGTH) {
     return { ok: false, problem: "password-short" };
   }
 
   // 확인 칸도 앞뒤 빈칸을 손대지 않는다. 위 칸과 똑같이 다뤄야 비교가 맞는다
+  // [F12][분기] 확인 칸과 다름 → true: 'password-mismatch' 반환 / false: F13
   if (base.password !== rawConfirm) {
     return { ok: false, problem: "password-mismatch" };
   }
 
   // 다 통과했다. 도장이 찍힌 값을 그대로 넘긴다
+  // [F13][반환] base → signUp(sign-up) 으로 전달
   return base;
 }
 
@@ -138,8 +153,11 @@ export function checkNewCredentials(
  * 이메일을 화면에 보여 줄 때 쓰는 가림막. 골뱅이 앞의 가운데를 점으로 덮는다.
  * 로그인한 사람에게 "이 계정이 맞나요?" 하고 보여 줄 때 쓰려고 미리 둔다.
  */
+// [F14][함수] maskEmail(email): 이메일 가운데를 점으로 덮는다
+// 입력: email → 처리: 골뱅이 앞부분만 가림 → 출력: 가려진 문자열
 export function maskEmail(email: Email): string {
   // 골뱅이를 기준으로 앞뒤를 가른다
+  // [F15][흐름] email → indexOf('@') → at → slice 로 name / domain 으로 가름
   const at = email.indexOf("@");
 
   // 골뱅이 앞부분. 여기만 가린다
@@ -149,8 +167,10 @@ export function maskEmail(email: Email): string {
   const domain = email.slice(at);
 
   // 두 글자 이하면 앞 한 글자만 남겨도 거의 다 드러난다. 통째로 덮는다
+  // [F16][분기] name 이 두 글자 이하 → true: 통째로 덮어 반환 / false: F17
   if (name.length <= 2) return `${"·".repeat(name.length)}${domain}`;
 
   // 첫 글자와 끝 글자만 남기고 가운데를 덮는다
+  // [F17][반환] 첫 글자 + 점 + 끝 글자 + domain → 화면으로 전달
   return `${name[0]}${"·".repeat(name.length - 2)}${name.at(-1)}${domain}`;
 }

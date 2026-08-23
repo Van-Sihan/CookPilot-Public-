@@ -18,7 +18,7 @@
 import Link from "next/link";
 import { useActionState, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Icon } from "@/components/icons";
-import { publishPostAction } from "@/app/actions/post";
+import { publishPostAction, revisePostAction } from "@/app/actions/post";
 import { emptyWriteState } from "@/app/actions/post-state";
 import { browserRecipeDraftStore } from "@/lib/adapter/browser-recipe-draft-store";
 import { browserCookSetupStore } from "@/lib/adapter/browser-cook-setup-store";
@@ -27,8 +27,21 @@ import { MAX_BADGE, MAX_SUMMARY, MAX_TITLE, type PostTone } from "@/lib/domain/p
 import { draftFromRecipe } from "@/lib/domain/recipe-to-post";
 import { findDraft } from "@/lib/usecase/plan-recipe";
 import { drawRecipeCard } from "@/lib/recipe-card";
-import { writeCopy, writeMessages } from "@/lib/write-content";
+import { badgePicks, writeCopy, writeMessages } from "@/lib/write-content";
 import { coverToneLabels, coverTones } from "@/lib/cook-content";
+
+/** 고치는 중일 때 미리 채워 둘 값들 */
+export type EditingPost = {
+  id: string;
+  title: string;
+  summary: string;
+  body: string;
+  badge: string;
+  minutes: string;
+  tone: PostTone;
+  /** 이미 붙어 있는 카드 그림. 안 건드리면 그대로 간다 */
+  imageUrl: string;
+};
 
 type Props = {
   /**
@@ -38,6 +51,13 @@ type Props = {
    * 읽지 않는 까닭 — 그러면 서버가 그린 화면과 브라우저가 그린 화면이 달라진다.
    */
   fromCook: boolean;
+  /**
+   * 고치는 중이면 그 글. 새로 쓰는 중이면 없다.
+   *
+   * 폼을 두 벌로 두지 않는 까닭 — 칸도 검사도 똑같다. 두 벌이면 한쪽만
+   * 고쳐져서 "새로 쓸 때는 되는데 고칠 때는 안 되는" 칸이 생긴다.
+   */
+  editing?: EditingPost;
 };
 
 /** 표지를 올리는 일이 지금 어디까지 됐는지 */
@@ -47,15 +67,27 @@ type CoverState =
   | { at: "done"; url: string }
   | { at: "failed"; text: string };
 
-export function WriteForm({ fromCook }: Props) {
-  /* 서버로 보내고 돌아온 쪽지. 안 됐으면 까닭이 담겨 온다 */
-  const [state, action, pending] = useActionState(publishPostAction, emptyWriteState);
+// [F1][함수] WriteForm({fromCook, editing}): 글쓰기·글고치기 폼(하나로 겸한다)
+// 입력: fromCook(방금 만든 요리를 끌어올지) + editing(고치는 중이면 그 글)
+// 처리: 칸을 채우고 표지를 그려 올린 뒤 서버 액션으로 → 출력: 화면(JSX)
+export function WriteForm({ fromCook, editing }: Props) {
+  /* 서버로 보내고 돌아온 쪽지. 안 됐으면 까닭이 담겨 온다.
+     새로 쓰기와 고치기가 부르는 곳만 다르고 나머지는 같다 */
+  // [F2][분기] editing 이 있나?
+  // [true]  → ▷ revisePostAction(app/actions/post.ts:F10)
+  // [false] → ▷ publishPostAction(app/actions/post.ts:F2)
+  const [state, action, pending] = useActionState(
+    editing ? revisePostAction : publishPostAction,
+    emptyWriteState,
+  );
 
   /* 방금 만든 요리. 브라우저에 담겨 있어서 "바깥 값 지켜보기" 로 따라간다 */
+  // [F3][함수] watchRecipe(fn): 담아 둔 레시피가 바뀌는지 지켜보라고 부탁하는 함수
   const watchRecipe = useCallback(
     (fn: () => void) => browserRecipeDraftStore.subscribe(fn),
     [],
   );
+  // [F4][외부] ▷ useSyncExternalStore(watchRecipe, findDraft) → recipe
   const recipe = useSyncExternalStore(
     watchRecipe,
     () => findDraft(browserRecipeDraftStore),
@@ -63,24 +95,35 @@ export function WriteForm({ fromCook }: Props) {
     () => null,
   );
 
-  /* 적고 있는 값들 */
-  const [title, setTitle] = useState("");
-  const [summary, setSummary] = useState("");
-  const [body, setBody] = useState("");
-  const [badge, setBadge] = useState("한 그릇");
-  const [minutes, setMinutes] = useState("");
-  const [tone, setTone] = useState<PostTone>("ember");
+  /* 적고 있는 값들. 고치는 중이면 그 글의 값으로 시작한다 */
+  // [F5][흐름] 적고 있는 값들 → title·summary·body·badge·minutes·tone
+  // 고치는 중이면 그 글의 값으로 시작한다
+  const [title, setTitle] = useState(editing?.title ?? "");
+  const [summary, setSummary] = useState(editing?.summary ?? "");
+  const [body, setBody] = useState(editing?.body ?? "");
+  const [badge, setBadge] = useState(editing?.badge ?? "한 그릇");
+  const [minutes, setMinutes] = useState(editing?.minutes ?? "");
+  const [tone, setTone] = useState<PostTone>(editing?.tone ?? "ember");
 
-  /* 표지 그림 */
-  const [cover, setCover] = useState<CoverState>({ at: "none" });
+  /* 표지 그림. 이미 붙어 있던 것이 있으면 "다 됐음" 으로 시작한다 —
+     그래야 고치기로 저장할 때 그림이 떨어져 나가지 않는다 */
+  // [F6][분기] editing.imageUrl 이 있나? [true] '다 됐음' 으로 시작 / [false] '없음'
+  // 이렇게 안 하면 고치기로 저장할 때 붙어 있던 그림이 떨어져 나간다
+  const [cover, setCover] = useState<CoverState>(
+    editing?.imageUrl ? { at: "done", url: editing.imageUrl } : { at: "none" },
+  );
 
   /* 그림을 그리는 자리. 화면에는 안 보인다 */
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   /* 요리에서 끌어온 값을 한 번만 채운다.
      지켜보게 두면 사람이 고쳐 놓은 것을 계속 덮어쓴다 */
+  // [F7][흐름] 요리에서 끌어온 값을 채웠는지 → filled (한 번만 채운다)
   const filled = useRef(false);
 
+  // [F8][분기] fromCook 이고 recipe 가 있고 아직 안 채웠나?
+  // [true]  → draftFromRecipe(domain/recipe-to-post:F7) → 각 칸에 채운다
+  // [false] → 아무것도 안 한다(지켜보게 두면 사람이 고쳐 놓은 것을 계속 덮어쓴다)
   useEffect(() => {
     // 요리에서 온 길이 아니거나, 아직 레시피를 못 읽었거나, 이미 채웠으면 할 일이 없다
     if (!fromCook || !recipe || filled.current) return;
@@ -89,9 +132,11 @@ export function WriteForm({ fromCook }: Props) {
     filled.current = true;
 
     // 색조는 요리 화면에서 고른 것을 그대로 잇는다
+    // [F9][외부] ▷ browserCookSetupStore.load() → 요리 화면에서 고른 색조를 이어 받는다
     const saved = browserCookSetupStore.load();
     const picked = (saved?.tone === "soft" ? "cocoa" : "ember") as PostTone;
 
+    // [F10][호출] recipe + picked → draftFromRecipe(domain:F7) → draft → 각 칸으로
     const draft = draftFromRecipe(recipe, picked);
 
     setTitle(draft.title);
@@ -102,6 +147,8 @@ export function WriteForm({ fromCook }: Props) {
   }, [fromCook, recipe]);
 
   /** 레시피 카드를 그려 스토리지에 올린다 */
+  // [F11][함수] onMakeCover(): 레시피 카드를 그려 스토리지에 올린다
+  // 입력: recipe + tone → 처리: 캔버스에 그림 → Blob → 업로드 → 출력: 없음(비동기)
   async function onMakeCover() {
     const canvas = canvasRef.current;
 
@@ -111,8 +158,11 @@ export function WriteForm({ fromCook }: Props) {
     setCover({ at: "busy" });
 
     // 그리는 일은 요리 완성 화면과 똑같은 함수가 한다. 두 벌로 두면 어긋난다
+    // [F12][호출] canvas + recipe + tone → drawRecipeCard(lib/recipe-card:F1) — 캔버스에 그린다
+    // 완성 화면과 **같은 함수**를 쓴다. 두 벌로 두면 내려받은 그림과 글에 붙은 그림이 달라진다
     drawRecipeCard(canvas, recipe, tone);
 
+    // [F13][외부] ▷ canvas.toBlob() → png (비동기)
     const png = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/png"),
     );
@@ -122,6 +172,8 @@ export function WriteForm({ fromCook }: Props) {
       return;
     }
 
+    // [F14][외부] png ▷ uploadCover(adapter/browser-cover-upload:F3) → result
+    // [F14][흐름] result.url → 숨은 칸(imageUrl) → 폼과 함께 서버로 실려 간다
     const result = await uploadCover(png);
 
     setCover(
@@ -134,6 +186,10 @@ export function WriteForm({ fromCook }: Props) {
 
   return (
     <form className="wr" action={action}>
+      {/* 어느 글을 고치는 중인지. 사람이 고칠 값이 아니라 숨겨 둔다.
+          주소에서 읽지 않는 까닭 — Server Action 은 어느 화면에서 불렸는지 모른다 */}
+      {editing && <input type="hidden" name="postId" value={editing.id} />}
+
       {/* 요리에서 왔는데 담아 둔 레시피가 없으면 채울 것이 없다 */}
       {fromCook && !recipe && (
         <p className="wr-warn">
@@ -181,9 +237,36 @@ export function WriteForm({ fromCook }: Props) {
             name="badge"
             value={badge}
             onChange={(e) => setBadge(e.target.value)}
+            placeholder={writeCopy.badgePlaceholder}
             maxLength={MAX_BADGE}
             autoComplete="off"
+            // 밑에 있는 설명 줄을 이 칸의 설명으로 묶어 준다
+            aria-describedby="wr-badge-hint"
           />
+
+          {/* 이름표만으로는 무엇을 적는 칸인지 알기 어렵다.
+              어디에 쓰이는 값인지 한 줄로 밝혀 둔다 */}
+          <p className="wr-hint" id="wr-badge-hint">
+            {writeCopy.badgeHint}
+          </p>
+
+          {/* 자주 쓰는 태그를 눌러 넣는다. 손으로만 적게 두면
+              "한그릇"·"한 그릇" 처럼 조금씩 다른 태그로 흩어져서,
+              눌러도 그중 일부만 모인다 */}
+          <div className="wr-picks" role="group" aria-label={writeCopy.badgePicks}>
+            {badgePicks.map((t) => (
+              <button
+                className="wr-pick"
+                key={t}
+                type="button"
+                onClick={() => setBadge(t)}
+                // 지금 골라 둔 것에 불이 들어온다. CSS 가 이 표시를 본다
+                data-on={badge === t ? "" : undefined}
+              >
+                #{t}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div>
@@ -235,7 +318,13 @@ export function WriteForm({ fromCook }: Props) {
         rows={16}
       />
 
-      {/* ---------- 표지 ---------- */}
+      {/* ---------- 표지 ----------
+          고치는 중인데 레시피가 없으면 새로 그릴 수는 없다.
+          그래도 이미 붙어 있는 그림은 숨은 칸으로 함께 실어 보내야 한다 */}
+      {editing && !recipe && (
+        <input type="hidden" name="imageUrl" value={cover.at === "done" ? cover.url : ""} />
+      )}
+
       {recipe && (
         <div className="wr-cover">
           <p className="wr-l">{writeCopy.coverLabel}</p>
@@ -281,12 +370,18 @@ export function WriteForm({ fromCook }: Props) {
       )}
 
       <div className="wr-foot">
-        <Link className="btn btn-line" href="/community">
+        <Link className="btn btn-line" href={editing ? `/posts/${editing.id}` : "/community"}>
           {writeCopy.cancel}
         </Link>
 
         <button className="btn btn-fill" type="submit" disabled={pending}>
-          {pending ? writeCopy.saving : writeCopy.save}
+          {editing
+            ? pending
+              ? writeCopy.updating
+              : writeCopy.update
+            : pending
+              ? writeCopy.saving
+              : writeCopy.save}
         </button>
       </div>
     </form>

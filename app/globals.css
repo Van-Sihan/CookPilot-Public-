@@ -958,6 +958,11 @@ footer { border-top:1px solid var(--line); padding:44px 0 54px; margin-top:clamp
 .cm-shot-herb  { background:radial-gradient(circle at 50% 52%, #3D5233, #1E271B 40%, var(--bg-3) 70%); }
 .cm-shot-cocoa { background:radial-gradient(circle at 50% 52%, #4A3020, #241811 40%, var(--bg-3) 70%); }
 .cm-shot-cream { background:radial-gradient(circle at 50% 52%, #6B5636, #2E261A 40%, var(--bg-3) 70%); }
+/* 표지를 안 만든 글. 깨진 그림 대신 불꽃 하나만 얹는다 */
+.cm-shot-none {
+  position:absolute; inset:0; display:grid; place-items:center;
+  color:rgba(255,247,234,.28);
+}
 
 .cm-meta { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
 .cm-badge {
@@ -1706,6 +1711,10 @@ footer { border-top:1px solid var(--line); padding:44px 0 54px; margin-top:clamp
 
 /* ---------- 물어보기 ---------- */
 .ck-ask { padding-top: 0; }
+/* 왼쪽 첫 제목도 오른쪽 "타이머" 와 같은 높이에서 시작해야 한다.
+   .ck-h2 가 기본으로 갖는 위 여백(최대 36px)이 여기만 남아 있어서
+   두 기둥의 첫 줄이 그만큼 어긋나 보였다 */
+.ck-ask > .ck-h2:first-child { margin-top: 0; }
 .ck-ask-lead {
   display: flex; align-items: center; gap: 9px;
   font-size:16px; line-height: 1.5; font-weight: 600; color: var(--paper);
@@ -1888,22 +1897,31 @@ footer { border-top:1px solid var(--line); padding:44px 0 54px; margin-top:clamp
 }
 .dn-cover-col, .dn-side { min-width: 0; }
 
-/* 표지. 사진 없이 CSS 로 그린다 */
+/* 표지 미리보기. 진짜 그림은 캔버스가 그리고, 여기서는 같은 색으로 흉내만 낸다.
+   어두운 그라데이션을 걷어 내고 밝은 종이로 바꿨다 — 내려받는 그림이 그렇게 나온다 */
 .dn-cover {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
   aspect-ratio: 4 / 5; width: 100%;
-  border-radius: 6px; border: 1px solid var(--line);
-  background: linear-gradient(180deg, var(--cover-top), var(--cover-bottom));
-  text-align: center; padding: 24px;
+  border-radius: 6px; border: 1px solid var(--edge);
+  background: var(--cover-paper);
+  /* 종이 안쪽에 가는 테두리 하나. 카드에 그려 넣는 그 선이다 */
+  box-shadow: inset 0 0 0 1.5px var(--cover-line);
+  text-align: center; padding: 26px;
+}
+.dn-cover-brand {
+  font-family: var(--mono); font-size:12px; font-weight: 700;
+  /* 글자 사이를 벌린다. 캔버스에서는 빈칸을 끼워 넣지만 여기서는 CSS 로 된다 */
+  letter-spacing: .34em; text-indent: .34em;
+  color: var(--cover-accent); margin: 0;
 }
 .dn-cover-title {
-  font-family: var(--serif); font-weight: 600;
-  font-size:clamp(24px, 3.4vw, 33px); line-height: 1.35;
-  color: #fff7ea; margin: 0; word-break: keep-all;
+  font-family: var(--serif); font-weight: 700;
+  font-size:clamp(24px, 3.4vw, 33px); line-height: 1.35; letter-spacing: -.02em;
+  color: var(--cover-ink); margin: 0; word-break: keep-all;
 }
 .dn-cover-serv {
   font-family: var(--mono); font-size:13.5px; line-height: 1.45;
-  color: rgba(255, 247, 234, 0.72); margin: 0;
+  color: var(--cover-dim); margin: 0;
 }
 
 /* 표지 색 고르기 */
@@ -2225,7 +2243,20 @@ footer { border-top:1px solid var(--line); padding:44px 0 54px; margin-top:clamp
   background: #2A1A15;
   border: 1px solid rgba(228,91,50,.34);
 }
+/* 사진을 올렸으면 그 사진이 동그라미를 채운다 */
+.hm-face-img { object-fit: cover; }
+/* 사진이 없을 때 들어가는 첫 글자 */
+.hm-face { font-family: var(--serif); font-size: 19px; color: var(--fire-2); }
 .hm-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* 계정 설정으로 가는 톱니바퀴. 이름 오른쪽 끝에 붙는다 */
+.hm-gear {
+  margin-left: auto; flex: none;
+  width: 34px; height: 34px; border-radius: 9px;
+  display: grid; place-items: center;
+  color: var(--paper-3); border: 1px solid transparent;
+  transition: color .18s, border-color .18s, background .18s;
+}
+.hm-gear:hover { color: var(--fire-2); border-color: var(--edge-2); background: var(--surf-2); }
 .hm-name strong { font-size: 16px; line-height: 1.35; color: var(--paper); }
 .hm-sub { font-size: 12.5px; line-height: 1.5; color: var(--paper-3); }
 
@@ -2517,6 +2548,65 @@ footer { border-top:1px solid var(--line); padding:44px 0 54px; margin-top:clamp
 }
 .pd-cmt-text { margin:0; font-size:15.5px; line-height:1.82; color:var(--paper-2); }
 
+/* 프로필 사진. 첫 글자 동그라미와 같은 자리·같은 크기여야 줄이 안 흔들린다 */
+.pd-cmt-face {
+  flex:0 0 auto; width:34px; height:34px; border-radius:50%;
+  object-fit:cover; border:1px solid var(--line-2);
+}
+/* 고친 적이 있으면 밝힌다. 말이 조용히 바뀌면 안 된다 */
+.pd-cmt-edited { font-size:11px; color:var(--paper-3); opacity:.8; }
+
+/* 댓글 한 줄에 붙는 손보기 단추들. 평소에는 조용히 있다가 손을 얹으면 드러난다 */
+.pd-cmt-acts { display:flex; gap:14px; margin:8px 0 0; }
+.pd-cmt-acts button {
+  display:inline-flex; align-items:center; gap:5px;
+  background:none; border:0; padding:0; cursor:pointer;
+  font-family:var(--mono); font-size:12px; color:var(--paper-3);
+  transition:color .18s;
+}
+.pd-cmt-acts button:hover { color:var(--fire-2); }
+.pd-cmt-acts button:disabled { opacity:.5; cursor:progress; }
+
+/* 그 자리에서 바로 고치는 칸 */
+.pd-cmt-edit { margin:4px 0 0; }
+.pd-cmt-edit-foot { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
+
+/* 로그인 안 한 사람에게 입력칸 대신 놓이는 안내 */
+.pd-write-need {
+  margin:18px 0 0; padding:18px 20px;
+  border:1px dashed var(--line-2); border-radius:10px;
+  font-size:14.5px; line-height:1.7; color:var(--paper-3);
+}
+.pd-write-need a { color:var(--fire-2); text-decoration:underline; text-underline-offset:3px; }
+
+/* 글쓴이 프로필 사진. 첫 글자 동그라미와 같은 크기 */
+.pd-chef-face { width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid var(--line-2); }
+
+/* =====================================================================
+   글 밑 단추 줄 — 좋아요 · 저장 · 고치기 · 지우기
+   ===================================================================== */
+.pd-acts { margin:26px 0 0; padding:18px 0 0; border-top:1px solid var(--line); }
+.pd-acts-row { display:flex; flex-wrap:wrap; gap:10px; }
+.pd-act {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:9px 16px; border-radius:999px; cursor:pointer;
+  background:transparent; border:1px solid var(--edge-2); color:var(--paper-2);
+  font-family:var(--sans); font-size:14px; text-decoration:none;
+  transition:border-color .18s, color .18s, background .18s;
+}
+.pd-act:hover { border-color:var(--fire-2); color:var(--fire-2); }
+.pd-act:disabled { opacity:.55; cursor:progress; }
+/* 눌려 있는 것. 테두리만 바꾸면 눈에 안 들어와서 면까지 채운다 */
+.pd-act[data-on] {
+  border-color:var(--fire-2); color:var(--fire-2); background:var(--surf-ember);
+}
+.pd-act-n { font-family:var(--mono); font-size:13px; opacity:.85; }
+/* 내 글에만 붙는 둘. 좋아요보다 조용해야 한다 — 늘 누를 단추가 아니다 */
+.pd-act-quiet { border-color:var(--edge); color:var(--paper-3); font-size:13.5px; padding:8px 14px; }
+.pd-act-drop:hover { border-color:var(--fire-1); color:var(--fire-1); }
+.pd-acts-note { margin:12px 0 0; font-size:13.5px; color:var(--fire-2); }
+.pd-acts-note a { color:var(--paper); text-decoration:underline; text-underline-offset:3px; }
+
 
 /* =====================================================================
    커뮤니티에 물어보기 (/ask)
@@ -2714,6 +2804,81 @@ footer { border-top:1px solid var(--line); padding:44px 0 54px; margin-top:clamp
   transition:border-color .18s, color .18s, background .18s;
 }
 .ck-read:hover { border-color:var(--fire-2); color:var(--fire-2); background:var(--surf-2); }
+/* 소리가 나는 동안. 같은 단추가 멈추는 단추가 되므로 눌린 것처럼 보여야 한다 */
+.ck-read[data-on] {
+  border-color:var(--fire-2); color:var(--fire-2); background:var(--surf-ember);
+  animation:vc-pulse 1.6s ease-in-out infinite;
+}
+
+/* =====================================================================
+   유튜브에서 옮겨 온 레시피의 출처 카드 (/shop 오른쪽 기둥)
+   한 줄짜리 다른 출처와 달리 카드로 두는 까닭은 컴포넌트 주석에 적어 두었다.
+   ===================================================================== */
+.yt-src {
+  margin:14px 0 0; padding:14px;
+  background:var(--surf-1); border:1px solid var(--edge); border-radius:12px;
+}
+/* 무엇을 보고 옮겼는지 밝히는 첫 줄 */
+.yt-src-eyebrow {
+  display:flex; align-items:center; gap:7px; margin:0 0 11px;
+  font-family:var(--mono); font-size:12px; letter-spacing:.04em;
+  color:var(--fire-2);
+}
+/* 세모를 담는 동그라미. 유튜브 빨강을 그대로 쓰지 않는다 — 우리 색 안에 둔다 */
+.yt-src-mark { display:flex; color:var(--fire-2); }
+
+/* 그림과 제목을 한 덩어리로 누르게 묶는다 */
+.yt-src-link { display:block; color:inherit; text-decoration:none; }
+
+/* 미리보기 그림 자리. 16:9 로 못 박아 그림이 늦게 와도 줄이 안 밀린다 */
+.yt-src-shot {
+  position:relative; display:block; overflow:hidden;
+  aspect-ratio:16 / 9; border-radius:9px; border:1px solid var(--edge);
+  background:var(--surf-2);
+}
+.yt-src-shot img { display:block; width:100%; height:100%; object-fit:cover; }
+
+/* 그림 위에 얹는 재생 세모. 영상이라는 것을 한눈에 알린다 */
+.yt-src-play {
+  position:absolute; inset:0; margin:auto;
+  width:44px; height:44px; border-radius:50%;
+  display:grid; place-items:center;
+  color:#fff; background:rgba(20,14,12,.66);
+  border:1px solid rgba(255,247,234,.34);
+  transition:background .18s, transform .12s;
+}
+.yt-src-link:hover .yt-src-play { background:var(--fire-1); transform:scale(1.06); }
+
+/* 영상 제목. 요리 이름이 아니라 영상에 붙어 있던 제목이다 */
+.yt-src-title {
+  display:block; margin:11px 0 0;
+  font-size:15px; line-height:1.5; font-weight:600; color:var(--paper);
+  word-break:keep-all;
+}
+.yt-src-link:hover .yt-src-title { color:var(--fire-2); }
+
+/* 올린 사람 */
+.yt-src-chef {
+  display:flex; align-items:baseline; gap:8px; margin:9px 0 0;
+  font-size:13.5px; line-height:1.5; color:var(--paper-2);
+}
+.yt-src-chef-l {
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.04em; color:var(--paper-3);
+}
+
+/* 영상으로 가는 글자 링크. 그림을 못 받았을 때 여기밖에 안 남는다 */
+.yt-src-go {
+  display:inline-block; margin:11px 0 0;
+  font-size:13.5px; color:var(--fire-2);
+  text-decoration:underline; text-underline-offset:3px;
+}
+.yt-src-go:hover { color:var(--paper); }
+
+/* 우리가 만든 것이 아니라는 다짐. 위와 가는 선으로 나눈다 */
+.yt-src-mind {
+  margin:12px 0 0; padding:11px 0 0; border-top:1px solid var(--edge);
+  font-size:12.5px; line-height:1.7; color:var(--paper-3); word-break:keep-all;
+}
 
 /* 서재로 가는 길. 옆의 다른 값들과 같은 자리에 앉되 누를 수 있다는 것이 보여야 한다 */
 .hm-shelf { color:var(--fire-2); text-decoration:underline; text-underline-offset:3px; }
@@ -2721,73 +2886,154 @@ footer { border-top:1px solid var(--line); padding:44px 0 54px; margin-top:clamp
 
 
 /* =====================================================================
-   내 요리 서재 (/shelf) — 가판대에 세워 진열한 모습
+   내 서재 (/shelf) — 가판대에 잡지를 세워 진열한 모습
 
-   목록으로 늘어놓지 않는다. 서재는 "몇 개 저장했나" 를 세는 자리가 아니라
-   "무엇을 만들었나" 를 돌아보는 자리라, 책등이 나란히 선 모습이 맞다.
+   책등만 늘어놓던 것을 표지가 앞을 보게 돌려 세웠다. 서가가 아니라 가판대다 —
+   고르는 자리에서는 몇 권 있는지보다 무엇이 있는지가 먼저다.
+   표지 색은 레시피 카드(lib/recipe-card.ts)와 같은 팔레트를 쓴다.
    ===================================================================== */
 
 .sf { margin: 8px 0 0; }
 
-/* 가판대 한 칸. 책이 늘면 아래로 줄이 늘어난다 */
-.sf-shelf { position: relative; padding: 0 0 22px; }
-
-.sf-row {
-  list-style: none; margin: 0; padding: 0 6px;
-  display: flex; flex-wrap: wrap; align-items: flex-end;
-  /* 책끼리는 거의 붙어 서 있어야 한다. 넓게 띄우면 진열이 아니라 목록이 된다 */
-  gap: 10px;
+.sf-count {
+  margin: 0 0 18px;
+  font-size: 14.5px; line-height: 1.6; color: var(--paper-3);
 }
 
-.sf-book { display: flex; }
+/* 가판대 한 칸. 잡지가 늘면 아래로 줄이 늘어난다 */
+.sf-stand { position: relative; padding: 0 0 22px; }
 
-/* 책등 하나. 세로로 길쭉해야 책으로 보인다 */
-.sf-spine {
-  position: relative;
-  width: 92px; height: 250px;
-  display: flex; flex-direction: column; align-items: center;
-  padding: 18px 10px 14px;
+.sf-rack {
+  list-style: none; margin: 0; padding: 0 4px;
+  display: grid; gap: 26px 20px;
+  /* 표지 폭을 못 박지 않고 자리에 맞춰 접는다. 개수를 정해 두면
+     두 권일 때 가운데가 휑하고 다섯 권일 때 마지막 하나가 혼자 남는다 */
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+}
+
+/* 펼친 칸이 길어져도 옆 칸까지 늘어나지 않게 위쪽에 붙여 둔다 */
+.sf-slot { display: flex; flex-direction: column; min-width: 0; align-self: start; }
+
+/* ---------- 표지 ---------- */
+.sf-cover {
+  /* 잡지 비율. 4:5 는 카드처럼 보이고 3:4 쯤이 잡지에 가깝다 */
+  aspect-ratio: 3 / 4; width: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 22px 18px;
+  position: relative; overflow: hidden;
   border: 1px solid var(--edge);
-  /* 위 두 귀퉁이만 둥글게. 아래는 선반에 닿아 있어야 한다 */
-  border-radius: 4px 4px 2px 2px;
+  /* 위 두 귀퉁이만 크게. 아래는 판에 닿아 있어야 세워 둔 것처럼 보인다 */
+  border-radius: 8px 8px 3px 3px;
   cursor: pointer; text-align: center;
-  transition: transform .18s ease, border-color .18s ease;
+  background: var(--sf-paper);
+  color: var(--sf-ink);
+  transition: transform .18s ease, box-shadow .18s ease;
 }
-/* 손을 얹으면 책을 조금 뽑아 든 것처럼 위로 뜬다 */
-.sf-spine:not(:disabled):hover { transform: translateY(-10px); border-color: var(--edge-2); }
+/* 손을 얹으면 한 권 뽑아 든 것처럼 위로 뜬다 */
+.sf-cover:not(:disabled):hover { transform: translateY(-6px); box-shadow: 0 10px 24px rgba(0,0,0,.45); }
 /* 레시피가 안 담긴 옛 책은 못 꺼낸다. 흐리게 두어 눈으로도 알린다 */
-.sf-spine:disabled { cursor: default; opacity: .5; }
+.sf-cover:disabled { cursor: default; opacity: .5; }
 
-/* 책등 위쪽의 띠지 */
-.sf-band {
-  position: absolute; left: 0; right: 0; top: 30px; height: 3px;
-  background: rgba(255,247,234,.16);
+/* 표지 안쪽에 두르는 가는 테. 레시피 카드에 그리는 그 선이다 */
+.sf-cover::after {
+  content: ""; position: absolute; inset: 9px;
+  border: 1px solid var(--sf-line); border-radius: 5px;
+  pointer-events: none;
 }
 
-/* 요리 이름. 책등이라 세로로 적는다 */
-.sf-title {
-  flex: 1; margin-top: 22px;
-  /* 글자를 세로로 흘린다. 책등에 이름을 적는 그 방식이다 */
-  writing-mode: vertical-rl;
-  font-family: var(--serif); font-size: 18px; line-height: 1.25;
-  letter-spacing: -.01em; color: var(--paper);
-  /* 이름이 길면 넘치지 않게 자른다. 세로라 높이가 곧 길이다 */
-  max-height: 150px; overflow: hidden;
+.sf-cover-brand {
+  font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+  letter-spacing: .34em; text-indent: .34em;
+  color: var(--sf-accent);
+}
+.sf-cover-pot { display: flex; color: var(--sf-accent); }
+.sf-cover-title {
+  font-family: var(--serif); font-weight: 700;
+  font-size: 20px; line-height: 1.3; letter-spacing: -.02em;
+  color: var(--sf-ink); word-break: keep-all;
+  /* 이름이 길어도 표지를 밀어내지 않게 세 줄에서 자른다 */
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.sf-cover-serv {
+  font-family: var(--mono); font-size: 11.5px; color: var(--sf-dim);
+}
+/* 표지 아래 띠. 잡지 표지의 바코드 자리쯤이다 */
+.sf-cover-band {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 5px 0;
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .18em;
+  color: var(--sf-paper); background: var(--sf-accent);
 }
 
-.sf-foot {
-  display: flex; flex-direction: column; gap: 3px; margin-top: 8px;
-  font-family: var(--mono); font-size: 11px; color: var(--paper-3);
+/* 색조 넷. 레시피 카드와 같은 값이라 내려받은 그림과 표지가 어긋나지 않는다 */
+.sf-cover[data-tone="ember"] {
+  --sf-paper: #FDF4E6; --sf-ink: #2A1710; --sf-dim: #8A6A55;
+  --sf-accent: #C2502F; --sf-line: rgba(194,80,47,.24);
 }
-.sf-date { opacity: .75; }
+.sf-cover[data-tone="herb"] {
+  --sf-paper: #F3F7EC; --sf-ink: #1C2A19; --sf-dim: #5F7256;
+  --sf-accent: #4E7A46; --sf-line: rgba(78,122,70,.24);
+}
+.sf-cover[data-tone="cocoa"] {
+  --sf-paper: #F7F0E8; --sf-ink: #2A1912; --sf-dim: #7C6151;
+  --sf-accent: #6B4630; --sf-line: rgba(107,70,48,.24);
+}
+.sf-cover[data-tone="cream"] {
+  --sf-paper: #FBF6EA; --sf-ink: #2E2515; --sf-dim: #87775A;
+  --sf-accent: #A6803C; --sf-line: rgba(166,128,60,.26);
+}
 
-/* 책마다 다른 책등 색. 사진이 없으니 색이 표지 노릇을 한다 */
-.sf-spine-ember { background: #2A1712; }
-.sf-spine-herb  { background: #16211A; }
-.sf-spine-cocoa { background: #241811; }
-.sf-spine-cream { background: #262017; }
+/* ---------- 표지 밑 ---------- */
+.sf-name {
+  margin: 12px 0 0; font-size: 15px; font-weight: 600; line-height: 1.45;
+  color: var(--paper); word-break: keep-all;
+}
+.sf-meta {
+  margin: 4px 0 0; font-family: var(--mono); font-size: 11.5px; color: var(--paper-3);
+}
+/* 유튜브에서 옮겨 온 것이면 원작자를 여기서도 밝힌다 */
+.sf-with { margin: 3px 0 0; font-size: 12px; color: var(--fire-2); }
 
-/* 책이 놓인 선반. 앞쪽 판을 한 겹 그려 두께를 만든다 */
+.sf-acts { display: flex; gap: 8px; margin: 10px 0 0; }
+.sf-open { flex: 1; }
+.sf-drop {
+  width: 34px; flex: 0 0 auto; border-radius: 8px;
+  display: grid; place-items: center; cursor: pointer;
+  background: transparent; border: 1px solid var(--edge-2); color: var(--paper-3);
+  transition: border-color .18s, color .18s;
+}
+.sf-drop:hover { border-color: var(--fire-2); color: var(--fire-2); }
+
+/* ---------- 펼쳤을 때 나오는 속 ---------- */
+.sf-inside {
+  margin: 12px 0 0; padding: 14px 16px; border-radius: 10px;
+  background: var(--surf-1); border: 1px solid var(--edge);
+}
+.sf-inside-h {
+  margin: 0 0 8px;
+  font-family: var(--mono); font-size: 11.5px; font-weight: 700; letter-spacing: .04em;
+  color: var(--fire-2);
+}
+.sf-inside-h + * + .sf-inside-h { margin-top: 16px; }
+.sf-ings { list-style: none; margin: 0; padding: 0; }
+.sf-ings li {
+  display: flex; justify-content: space-between; gap: 10px;
+  padding: 5px 0; font-size: 13.5px; color: var(--paper-2);
+}
+.sf-ings li + li { border-top: 1px solid var(--line); }
+.sf-amount { font-family: var(--mono); font-size: 12px; color: var(--paper-3); }
+/* 순서에는 번호가 보여야 한다. 바탕 스타일이 목록 점을 걷어 내 두어서
+   여기서 다시 켠다 — 번호 없이 늘어놓으면 몇 번째인지 세어야 한다 */
+.sf-steps { margin: 0; padding-left: 22px; list-style: decimal; }
+.sf-steps li::marker { font-family: var(--mono); font-size: 11.5px; color: var(--fire-2); }
+.sf-steps li {
+  padding: 4px 0; font-size: 13.5px; line-height: 1.7; color: var(--paper-2);
+  word-break: keep-all;
+}
+.sf-min { margin-left: 8px; font-family: var(--mono); font-size: 11.5px; color: var(--fire-3); }
+.sf-cook { width: 100%; margin-top: 14px; }
+
+/* 잡지가 놓인 판. 앞쪽을 한 겹 그려 두께를 만든다 */
 .sf-plank {
   height: 12px; margin: -1px 0 0;
   border: 1px solid var(--edge-2);
@@ -2811,10 +3057,10 @@ footer { border-top:1px solid var(--line); padding:44px 0 54px; margin-top:clamp
 .sf-empty-t { margin: 0; font-size: 18px; color: var(--paper); }
 .sf-empty-s { margin: 0 0 8px; font-size: 15px; line-height: 1.7; color: var(--paper-3); }
 
-/* 좁은 화면에서는 책을 조금 작게. 한 줄에 셋은 서야 진열로 보인다 */
+/* 좁은 화면에서는 표지를 조금 작게. 한 줄에 둘은 서야 진열로 보인다 */
 @media (max-width: 560px) {
-  .sf-spine { width: 78px; height: 210px; }
-  .sf-title { font-size: 16px; max-height: 120px; }
+  .sf-rack { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 20px 14px; }
+  .sf-cover-title { font-size: 17px; }
 }
 
 /* ---------- 카드 아래에서 펼쳐지는 칸 (유튜브·냉장고·브랜드) ---------- */
@@ -2855,6 +3101,56 @@ footer { border-top:1px solid var(--line); padding:44px 0 54px; margin-top:clamp
 .pk-brand-title { font-size: 15px; line-height: 1.45; color: var(--paper); }
 /* 예시라 눌리지 않는다. 흐리게 두어 눈으로도 알린다 */
 .pk-brand .btn { margin-top: auto; opacity: .55; }
+
+/* 냉장고 재료를 적는 칸. 여러 줄이라 한 줄짜리와 모양만 같게 맞춘다 */
+.pk-open-area {
+  display: block; width: 100%; box-sizing: border-box;
+  padding: 12px 14px; resize: vertical;
+  background: #0E0C0B; border: 1px solid var(--edge-2); border-radius: 8px;
+  color: var(--paper); font-family: var(--sans); font-size: 15.5px; line-height: 1.6;
+}
+.pk-open-area::placeholder { color: var(--paper-3); }
+.pk-open-area:focus { outline: none; border-color: var(--fire-2); }
+/* 여러 줄 칸 밑에 놓이는 단추는 줄 옆이 아니라 아래에 넓게 앉는다 */
+.pk-open-go { width: 100%; margin-top: 12px; }
+
+/* ---------- 냉장고 재료로 찾아 온 요리 후보 ---------- */
+.pk-ideas { margin: 14px 0 0; }
+.pk-ideas-h {
+  margin: 0 0 12px;
+  font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .02em;
+  color: var(--fire-2);
+}
+/* 셋에서 다섯까지 온다. 자리에 맞춰 저절로 접히게 둔다 —
+   개수를 못 박으면 넷이 왔을 때 마지막 하나가 혼자 남는다 */
+.pk-idea-grid {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.pk-idea {
+  display: flex; flex-direction: column; gap: 9px;
+  padding: 16px 18px; border-radius: 12px;
+  background: var(--surf-1); border: 1px solid var(--edge);
+  transition: border-color .18s, background .18s;
+}
+.pk-idea:hover { border-color: var(--edge-2); background: var(--surf-2); }
+.pk-idea-t {
+  margin: 0;
+  font-family: var(--serif); font-size: 19px; line-height: 1.35; letter-spacing: -.01em;
+  color: var(--paper);
+}
+.pk-idea-why {
+  margin: 0; font-size: 13.5px; line-height: 1.7; color: var(--paper-2);
+  word-break: keep-all;
+}
+/* 시간과 사야 할 것. 고를 때 가장 크게 갈리는 줄이라 눈에 띄어야 한다 */
+.pk-idea-meta {
+  margin: 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+  color: var(--fire-2); word-break: keep-all;
+}
+/* 카드 높이가 제각각이라 단추를 바닥에 붙여야 한 줄로 보인다 */
+.pk-idea-go { width: 100%; margin-top: auto; }
 
 .pk-error { margin: 12px 0 0; font-size: 14px; line-height: 1.6; color: var(--fire-2); }
 
@@ -2903,13 +3199,21 @@ footer { border-top:1px solid var(--line); padding:44px 0 54px; margin-top:clamp
 .wr-body::placeholder { color: var(--paper-3); }
 .wr-body:focus { outline: none; border-color: var(--fire-2); }
 
-/* 딱지와 시간은 한 줄에. 둘 다 짧은 값이라 한 줄씩 쓰면 아깝다 */
-.wr-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+/* 카테고리와 시간은 한 줄에. 둘 다 짧은 값이라 한 줄씩 쓰면 아깝다.
+   위 여백을 여기서 따로 주는 까닭 — 안에 든 이름표는 그 칸의 첫 자식이라
+   `.wr-l:first-child` 에 걸려 위 여백이 0이 된다. 그대로 두면 이 줄만
+   윗 칸에 바짝 붙어서 앞 칸에 딸린 것처럼 보인다.
+   26px 은 다른 칸 사이(20px)보다 조금 넓다. 한 줄에 둘이 들어와 있어
+   같은 간격이면 오히려 좁아 보인다 */
+.wr-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 26px; }
 .wr-two input { width: 100%; }
 
-/* 색조 고르기 */
-.wr-tones { border: 0; padding: 0; margin: 0; }
-.wr-tones legend { padding: 0; }
+/* 색조 고르기.
+   위 여백을 묶음(fieldset)에 주고 legend 의 위 여백은 지운다.
+   legend 는 여백이 바깥으로 잘 안 빠져나가서, .wr-l 의 20px 을 그대로 두면
+   바로 위 태그 알갱이들과 거의 붙어 버린다 */
+.wr-tones { border: 0; padding: 0; margin: 24px 0 0; }
+.wr-tones legend { padding: 0; margin-top: 0; }
 .wr-tone {
   display: inline-block; margin: 0 8px 0 0; padding: 8px 14px;
   border: 1px solid var(--edge); border-radius: 999px;
@@ -2941,6 +3245,42 @@ footer { border-top:1px solid var(--line); padding:44px 0 54px; margin-top:clamp
 
 .wr-error { margin: 18px 0 0; font-size: 14px; line-height: 1.6; color: var(--fire-2); }
 .wr-ok { margin: 18px 0 0; font-size: 14px; line-height: 1.6; color: var(--fire-3); }
+
+/* 칸 밑에 붙는 한 줄 설명. 이름표만으로 부족할 때 무엇을 적는 칸인지 알려 준다 */
+.wr-hint { margin: 6px 0 0; font-size: 12px; line-height: 1.6; color: var(--paper-3); }
+
+/* 눌러 넣는 태그 알갱이들. 옆 기둥의 "자주 찾는 태그" 와 같은 모양이라야
+   같은 것이라는 게 눈으로 전해진다 */
+.wr-picks { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+.wr-pick {
+  padding: 5px 10px; border-radius: 999px; cursor: pointer;
+  background: transparent; border: 1px solid var(--edge); color: var(--paper-3);
+  font-family: var(--sans); font-size: 12.5px;
+  transition: border-color .18s, color .18s, background .18s;
+}
+.wr-pick:hover { border-color: var(--fire-2); color: var(--fire-2); }
+/* 지금 칸에 들어 있는 태그. 눌린 것이 보여야 또 누르지 않는다 */
+.wr-pick[data-on] {
+  border-color: var(--fire-2); color: var(--fire-2); background: var(--surf-ember);
+}
+
+/* ---------- 프로필 사진 ---------- */
+.ph { margin: 0 0 28px; }
+.ph-row { display: flex; align-items: flex-start; gap: 18px; }
+.ph-face {
+  width: 72px; height: 72px; flex: none; border-radius: 50%; overflow: hidden;
+  display: grid; place-items: center;
+  background: #2A1A15; border: 1px solid rgba(228,91,50,.34);
+}
+.ph-face img { width: 100%; height: 100%; object-fit: cover; }
+.ph-letter { font-family: var(--serif); font-size: 30px; color: var(--fire-2); }
+.ph-side { min-width: 0; }
+.ph-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------- 계정 설정 아래 링크 줄 ---------- */
+.ac-links { margin: 34px 0 0; padding: 22px 0 0; border-top: 1px solid var(--line); }
+.ac-links-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.ac-links-row .btn { display: inline-flex; align-items: center; gap: 8px; }
 
 /* 맨 아래 단추 둘. 오른쪽에 붙인다 */
 .wr-foot { display: flex; justify-content: flex-end; gap: 10px; margin: 26px 0 0; }

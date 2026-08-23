@@ -44,8 +44,11 @@ type Props = {
   onAskNext: () => void;
 };
 
+// [F1][함수] CookTimer({alarms, onAdd, onDrop, onAskNext}): 요리 화면 오른쪽 타이머 칸
+// 입력: alarms(껍데기가 쥔 목록) + 세 손잡이 → 처리: 1초마다 남은 시간 셈 → 출력: 화면(JSX)
 export function CookTimer({ alarms, onAdd, onDrop, onAskNext }: Props) {
   /* 무엇을 재는지 적는 칸 */
+  // [F2][흐름] 이름칸 → label / 분칸 → minutes / 지금 시각 → now
   const [label, setLabel] = useState("");
 
   /* 몇 분인지. 글자로 쥐고 있어야 "3." 처럼 덜 적은 상태에서도 글자가 안 튄다 */
@@ -57,8 +60,10 @@ export function CookTimer({ alarms, onAdd, onDrop, onAskNext }: Props) {
   const [now, setNow] = useState(0);
 
   /* 이미 울린 타이머를 기억해 둔다. 안 그러면 1초마다 계속 울린다 */
+  // [F3][흐름] 이미 울린 타이머 번호 → rungRef (같은 알람을 두 번 안 울리려고)
   const rungRef = useRef<Set<string>>(new Set());
 
+  // [F4][반복] 1초마다 now 를 갱신한다. 화면을 떠날 때 시계를 거둔다
   useEffect(() => {
     // 걸어 둔 것이 없으면 셈할 것도 없다. 쓸데없이 1초마다 깨우지 않는다
     if (alarms.length === 0) return;
@@ -75,6 +80,7 @@ export function CookTimer({ alarms, onAdd, onDrop, onAskNext }: Props) {
 
   /* 끝난 타이머가 있으면 소리를 낸다.
      그리는 도중이 아니라 그린 뒤에 해야 해서 useEffect 안에 둔다 */
+  // [F5][반복] alarms 를 훑어 끝난 것을 찾는다 → 아직 안 울렸으면 ▷ beep(F7) 로 소리를 낸다
   useEffect(() => {
     for (const alarm of alarms) {
       // 아직 안 끝났거나 이미 울린 것은 넘어간다
@@ -85,6 +91,9 @@ export function CookTimer({ alarms, onAdd, onDrop, onAskNext }: Props) {
     }
   });
 
+  // [F6][함수] onSubmit(e): '타이머 시작' 을 눌렀을 때
+  // 입력: label + minutes → 처리: 숫자 검사 후 onAdd 호출 → 출력: 없음
+  // onAdd 는 cook-shell 의 addAlarm — 말로 건 타이머와 **같은 자리**로 들어간다
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     // 가만두면 브라우저가 페이지를 통째로 새로 고쳐 버린다
     e.preventDefault();
@@ -204,6 +213,8 @@ export function CookTimer({ alarms, onAdd, onDrop, onAskNext }: Props) {
  * 소리 파일을 두지 않고 그 자리에서 만들어 낸다 — 파일을 받아 오는 동안 못 울리고,
  * 부엌에서는 그 몇백 밀리초가 아쉽다. 게다가 파일 하나를 더 챙기지 않아도 된다.
  */
+// [F7][함수] beep(): 타이머가 끝났을 때 소리를 낸다
+// 입력: 없음 → 처리: ▷ AudioContext 로 짧은 소리 두 번 → 출력: 없음
 function beep() {
   try {
     const ctx = new AudioContext();

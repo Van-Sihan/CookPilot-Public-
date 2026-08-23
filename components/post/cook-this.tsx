@@ -20,6 +20,9 @@ import type { Recipe } from "@/lib/domain/recipe";
 import { findSavedKey, watchSavedKey } from "@/lib/usecase/enter-with-api-key";
 import { postCopy } from "@/lib/post-copy";
 
+// [F1][함수] CookThis({recipe}): '이 레시피로 요리 시작' 단추
+// 입력: recipe → 처리: 키 확인 → 레시피를 담아 두고 /shop 으로
+// 출력: 화면(JSX). 누르면 ▷ browserRecipeDraftStore.save() → router.push('/shop')
 export function CookThis({ recipe }: { recipe: Recipe }) {
   /* 장보기 화면으로 데려갈 때 쓴다 */
   const router = useRouter();

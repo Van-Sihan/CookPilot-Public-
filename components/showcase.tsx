@@ -7,6 +7,8 @@ import {
 } from "@/lib/site-content";
 
 /** 그림 · 영상에서 뽑아낸 요리 순서. 지금 하는 단계에만 불이 들어와 있다. */
+// [F1][함수] StepsArt(): 순서 카드를 흉내 낸 그림 조각
+// 입력: 없음(site-content 의 recipeSteps) → 출력: 화면(JSX)
 function StepsArt() {
   return (
     <div className="art art-steps">
@@ -39,6 +41,8 @@ function StepsArt() {
 }
 
 /** 그림 · 해 먹은 요리가 책처럼 꽂혀 있는 책장. 마지막 칸은 아직 비어 있다. */
+// [F2][함수] ShelfArt(): 서재를 흉내 낸 그림 조각
+// 입력: 없음 → 처리: rows 를 두 겹 반복 → 출력: 화면(JSX)
 function ShelfArt() {
   /* 책 다섯 권을 두 칸에 나눠 꽂는다. 위 칸에 셋, 아래 칸에 둘이라 아래에 자리가 하나 남는다 */
   const rows = [shelfBooks.slice(0, 3), shelfBooks.slice(3)];
@@ -80,6 +84,8 @@ function ShelfArt() {
 }
 
 /** 그림 · 집에 있는 건 흐리게 지우고 없는 것만 남긴 장보기 목록. */
+// [F3][함수] CartArt(): 장바구니를 흉내 낸 그림 조각
+// 입력: 없음(site-content 의 cartItems) → 출력: 화면(JSX)
 function CartArt() {
   /* 아래 글에 쓸 "사야 할 개수". 집에 없는 재료만 센다 */
   const need = cartItems.filter((i) => !i.have).length;
@@ -124,6 +130,8 @@ const arts = {
 } satisfies Record<Block["art"], () => React.ReactElement>;
 
 /** 글과 그림이 좌우로 번갈아 놓이는 세 덩어리. */
+// [F4][함수] Showcase(): 위 세 그림 조각을 늘어놓는 묶음
+// 입력: 없음 → 처리: StepsArt(F1)·ShelfArt(F2)·CartArt(F3) 배치 → 출력: 화면(JSX)
 export function Showcase() {
   return (
     <div className="wrap blocks">

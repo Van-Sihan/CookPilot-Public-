@@ -27,14 +27,19 @@ export type QuestionRead =
   | { ok: false; problem: QuestionProblem };
 
 /** 물음을 받아 줄지 살펴본다 */
+// [F1][함수] checkQuestion(raw): 챗봇에 보낼 물음을 받아 줄지 판정
+// 입력: raw(/ask 입력칸 글자) → 처리: trim 후 길이 검사 → 출력: QuestionRead
 export function checkQuestion(raw: string): QuestionRead {
   // 앞뒤 여백을 걷어 내고 길이를 잰다. 공백만 잔뜩인 물음을 막는다
+  // [F2][흐름] raw → trim() → text
   const text = raw.trim();
 
+  // [F3][분기] 길이 0 → 'empty' / 2 미만 → 'short' / 500 초과 → 'long' / 아니면 F4
   if (text.length === 0) return { ok: false, problem: "empty" };
   if (text.length < MIN_QUESTION) return { ok: false, problem: "short" };
   if (text.length > MAX_QUESTION) return { ok: false, problem: "long" };
 
+  // [F4][반환] text → {ok:true, text} → askKitchen(ask-kitchen) 으로 전달
   return { ok: true, text };
 }
 
@@ -79,8 +84,11 @@ export type ChatTurn = {
 export const KEEP_TURNS = 6;
 
 /** 지난 대화 중 뒤쪽 몇 마디만 남긴다 */
+// [F5][함수] recentTurns(history): 지난 대화 중 뒤쪽 몇 마디만 남긴다
+// 입력: history(ChatTurn[]) → 처리: slice(-KEEP_TURNS) → 출력: 최근 6마디
 export function recentTurns(history: readonly ChatTurn[]): readonly ChatTurn[] {
   // slice 는 음수를 받으면 뒤에서부터 센다. 짧으면 있는 만큼만 나온다
+  // [F6][반환] 뒤에서 6마디 → langchain-rag 의 프롬프트로 실려 나간다
   return history.slice(-KEEP_TURNS);
 }
 
@@ -98,17 +106,24 @@ export const TAKE = 5;
  * 다섯 건이 모두 계란찜 후기일 수 있다. 그때 출처를 다섯 줄 늘어놓으면
  * 근거가 많아 보이지만 실은 글 하나다.
  */
+// [F7][함수] foldSources(refs): 같은 요리의 출처를 하나로 접는다
+// 입력: refs(검색으로 걸린 근거들) → 처리: dishId 로 중복 제거 → 출력: 접힌 SourceRef[]
 export function foldSources(refs: readonly SourceRef[]): readonly SourceRef[] {
+  // [F8][흐름] 빈 seen(Set) 과 out(배열) 생성 — 아래 반복이 여기에 쌓는다
   const seen = new Set<string>();
   const out: SourceRef[] = [];
 
+  // [F9][반복] refs 를 처음부터 끝까지 훑는다
   for (const r of refs) {
     // 요리 이름이 없는 것은 근거로 쓸 수 없다
+    // [F10][분기] 요리 이름 없음 또는 이미 본 요리 → true: 건너뜀 / false: F11
     if (!r.dish || seen.has(r.dishId || r.dish)) continue;
 
+    // [F11][흐름] r → seen 에 표시 → out 에 push
     seen.add(r.dishId || r.dish);
     out.push(r);
   }
 
+  // [F12][반환] out → askKitchen → /ask 화면의 근거 목록으로 전달
   return out;
 }

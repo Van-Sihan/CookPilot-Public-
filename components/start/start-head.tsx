@@ -8,6 +8,8 @@ import { Icon } from "@/components/icons";
 import { aiStudioUrl, site, startHowTo, startSteps } from "@/lib/site-content";
 
 /** 로고와 이름. 홈보다 크게 놓아서 "여기가 출발점" 이라는 느낌을 준다 */
+// [F1][함수] StartMast(): 준비 화면들의 머리말(로고와 이름)
+// 입력: 없음 → 출력: 화면(JSX)
 export function StartMast() {
   return (
     <div className="start-mast">
@@ -33,6 +35,8 @@ export function StartMast() {
  * 네 걸음. 지금은 첫 번째 걸음에 서 있다.
  * 뒤 세 화면은 아직 안 만들었지만, 키 넣는 일이 전체에서 어디쯤인지 먼저 보여 주려고 놓았다.
  */
+// [F2][함수] StepTrack({now}): 네 걸음 중 지금 어디인지 보여 주는 줄
+// 입력: now(0~3) → 처리: startSteps 를 훑으며 i === now 에 표시 → 출력: 화면(JSX)
 export function StepTrack({ now }: { now: number }) {
   return (
     // 메뉴가 여러 개인 문서라서, 읽어 주는 기계가 구분할 수 있게 이름을 붙인다
@@ -61,6 +65,8 @@ export function StepTrack({ now }: { now: number }) {
 }
 
 /** 자세한 사용법. 자주 묻는 질문처럼 <details> 라서 자바스크립트 없이 열고 닫힌다 */
+// [F3][함수] HowTo(): 키를 어디서 받는지 알려 주는 안내 묶음
+// 입력: 없음(site-content 의 startHowTo) → 출력: 화면(JSX)
 export function HowTo() {
   return (
     <details className="start-how">
@@ -88,6 +94,8 @@ export function HowTo() {
 }
 
 /** 아직 키가 없는 사람에게 어디서 받는지 알려 준다. 카드 밖에 둬서 "지금 할 일" 과 헷갈리지 않게 한다 */
+// [F4][함수] KeyHelp(): 키가 무엇인지 짧게 설명하는 자리
+// 입력: 없음 → 출력: 화면(JSX)
 export function KeyHelp() {
   return (
     <div className="start-help">

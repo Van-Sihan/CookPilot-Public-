@@ -113,6 +113,9 @@ export const viewport: Viewport = {
   colorScheme: "dark",
 };
 
+// [F1][함수] RootLayout({children}): 모든 화면을 감싸는 바깥 껍데기
+// 입력: children(그 주소의 화면) → 처리: html/body + 글꼴·전역 CSS 를 두름 → 출력: 화면(JSX)
+// 여기서 정한 metadata 의 title 틀을 각 화면의 title 이 타고 들어간다
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html

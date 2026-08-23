@@ -57,29 +57,38 @@ export type SignInResult =
  * 사람이 적어 넣은 값을 검사하고, 통과하면 회원이 맞는지 물어본다.
  * 화면은 이 함수 하나만 부르면 되고, 검사 규칙도 확인 방법도 몰라도 된다.
  */
+// [F1][함수] signIn(rawEmail, rawPassword, gateway): 로그인을 시도한다
+// 입력: 이메일·비밀번호(로그인 폼) + gateway(AuthGateway) → 처리: 도메인 검사 → 서버 확인
+// 출력: SignInResult (비동기)
 export async function signIn(
   rawEmail: string,
   rawPassword: string,
   gateway: AuthGateway,
 ): Promise<SignInResult> {
   // 모양 검사는 통째로 도메인에 맡긴다. 여기서 또 따지면 규칙이 두 군데로 갈라져 헷갈린다
+  // [F2][호출] rawEmail, rawPassword → checkCredentials(domain/credentials) → checked
   const checked = checkCredentials(rawEmail, rawPassword);
 
   // 검사에서 걸렸으면 서버에 물어보지도 않고 까닭만 그대로 올려 보낸다.
   // 빈칸을 들고 서버를 다녀오는 것은 시간 낭비다
+  // [F3][분기] checked.ok → false: 까닭 반환(서버에 안 다녀옴) / true: F4
   if (!checked.ok) return { ok: false, reason: checked.problem };
 
   try {
     // 여기서 실제로 서버에 다녀온다. 얼마나 걸릴지 모르니 기다린다
+    // [F4][외부] checked.email/password → gateway.signIn() ▷ 수파베이스 인증 → answer (await)
     const answer = await gateway.signIn(checked.email, checked.password);
 
     // 아니라고 하면 그 까닭을 그대로 올려 보낸다
+    // [F5][분기] answer.ok → false: 서버가 준 까닭 반환 / true: F6
     if (!answer.ok) return { ok: false, reason: answer.reason };
 
     // 맞다고 했다. 화면은 이제 다음 걸음으로 넘어가도 된다
+    // [F6][반환] {ok:true, email} → app/actions/auth.ts 가 다음 화면으로 보낸다
     return { ok: true, email: checked.email };
   } catch {
     // 인터넷이 끊기면 여기로 온다. 값이 틀린 것과는 다른 실패라 따로 알린다
+    // [F7][에러] 다녀오지 못함 → 'unreachable' 반환 → 화면이 인터넷 확인을 안내
     return { ok: false, reason: "unreachable" };
   }
 }

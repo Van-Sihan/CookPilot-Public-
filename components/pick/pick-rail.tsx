@@ -47,22 +47,31 @@ type Props = {
   onWipe: () => void;
 };
 
+// [F1][함수] PickRail({setup, onSpeed, books, asked, onWipe}): 고르기 화면 왼쪽 기둥
+// 입력: 껍데기가 쥔 값 넷 + onWipe → 처리: 속도 고르기·도구·서재·백업·정리 → 출력: 화면(JSX)
 export function PickRail({ setup, onSpeed, books, asked, onWipe }: Props) {
   /* 백업을 하다 걸렸거나 잘 끝났을 때 띄우는 한 줄. 할 말이 없으면 null */
+  // [F2][흐름] 백업 결과 한 줄 → note
   const [note, setNote] = useState<string | null>(null);
 
   /* 눈에 안 보이게 숨겨 둔 파일 고르기 칸. 단추를 누르면 이 칸을 대신 누른다.
      파일 고르기 칸은 브라우저마다 생김새가 제각각이라 그대로 두면 기둥이 지저분해진다 */
+  // [F3][흐름] 숨겨 둔 파일 고르기 칸 → fileRef (단추가 대신 눌러 준다)
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // [F4][함수] onBackupSave(): 서재를 파일로 내려받는다
+  // 입력: 없음 → 처리: makeShelfBackup(usecase:F5) → Blob → 임시 주소로 내려받기
+  // 출력: 없음
   function onBackupSave() {
     /* 백업 글자를 만드는 것까지가 유스케이스 몫이다 */
+    // [F5][호출] browserRecipeShelfStore → makeShelfBackup(usecase:F5) → text(JSON 글자)
     const text = makeShelfBackup(browserRecipeShelfStore);
 
     /* 글자를 파일처럼 다루려면 브라우저가 쥘 수 있는 덩어리로 감싸야 한다 */
     const blob = new Blob([text], { type: "application/json" });
 
     /* 그 덩어리를 가리키는 임시 주소를 얻는다. 서버에 올리지 않고 브라우저 안에서 끝난다 */
+    // [F6][외부] text → Blob → ▷ URL.createObjectURL() → url → 숨은 링크를 눌러 파일 저장
     const url = URL.createObjectURL(blob);
 
     /* 내려받기는 링크를 눌러야 시작된다. 화면에 안 붙인 링크를 만들어 대신 눌러 준다 */
@@ -84,17 +93,22 @@ export function PickRail({ setup, onSpeed, books, asked, onWipe }: Props) {
     setNote(books + "권을 파일로 내려받았습니다.");
   }
 
+  // [F7][함수] onBackupPick(e): 고른 파일로 서재를 되돌린다
+  // 입력: e.target.files[0] → 처리: ▷ file.text() → restoreShelfBackup → 출력: 없음
   function onBackupPick(e: React.ChangeEvent<HTMLInputElement>) {
     /* 고르기 창을 열었다가 그냥 닫으면 파일이 없다 */
     const file = e.target.files?.[0];
     if (!file) return;
 
     /* 파일 읽기는 시간이 걸리는 일이라 다 읽은 뒤에 이어서 한다 */
+    // [F8][외부] ▷ file.text() — 파일을 글자로 읽는다 → text (비동기)
+    // [F8][호출] text → restoreShelfBackup(usecase:F16) → result
     file.text().then((text) => {
       /* 파일이 멀쩡한지 보고 서재를 갈아 끼우는 일은 통째로 유스케이스가 한다 */
       const result = restoreShelfBackup(text, browserRecipeShelfStore);
 
       /* 걸렸으면 서재는 그대로 두고 까닭만 알려 준다 */
+      // [F9][분기] result.ok → false: 까닭만 띄우고 서재는 그대로 / true: 몇 권 되돌렸는지 알린다
       if (!result.ok) {
         setNote(backupMessages[result.reason]);
         return;
@@ -109,6 +123,8 @@ export function PickRail({ setup, onSpeed, books, asked, onWipe }: Props) {
     e.target.value = "";
   }
 
+  // [F10][함수] onWipeAll(): 이 브라우저에 담아 둔 것을 모두 지운다
+  // 입력: 없음 → 처리: confirm 후 키·설정·서재를 각각 버림 → 출력: 없음
   function onWipeAll() {
     /* 되돌릴 수 없는 일이라 한 번 더 물어본다 */
     const sure = window.confirm(
@@ -116,9 +132,12 @@ export function PickRail({ setup, onSpeed, books, asked, onWipe }: Props) {
     );
 
     // 아니라고 하면 아무것도 건드리지 않는다
+    // [F11][분기] confirm 에서 '아니오' → true: 아무것도 안 함 / false: F12
     if (!sure) return;
 
     /* 셋을 각각 다른 유스케이스가 맡고 있어서 하나씩 부른다 */
+    // [F12][외부] ▷ forgetSavedKey · forgetCookSetup · emptyShelf — localStorage 세 칸을 지운다
+    // [F12][호출] onWipe() → 껍데기가 쥔 값(물은 횟수)도 함께 치운다
     forgetSavedKey(browserApiKeyStore);
     forgetCookSetup(browserCookSetupStore);
     emptyShelf(browserRecipeShelfStore);

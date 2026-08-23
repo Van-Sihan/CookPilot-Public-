@@ -12,9 +12,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { TagLink } from "@/components/community/tag-link";
+import { avatarLetter } from "@/lib/domain/avatar";
 import type { LivePost } from "@/lib/adapter/supabase-post-reader";
 import { postCopy } from "@/lib/post-copy";
 
+// [F1][함수] LivePostView({post}): 사람이 쓴 글 한 편을 그린다
+// 입력: post(LivePost, 서버가 reader:F1 로 만들어 넘긴 값) → 출력: 화면(JSX)
+// 예시 글(post-article)과 나눠 둔 까닭 — 저쪽에는 구조가 잡힌 레시피가 붙어 있다
 export function LivePostView({ post }: { post: LivePost }) {
   return (
     <article className="pd">
@@ -41,7 +46,7 @@ export function LivePostView({ post }: { post: LivePost }) {
       )}
 
       <div className="pd-meta">
-        <span className="cm-badge">{post.badge}</span>
+        <TagLink tag={post.badge} />
         {post.minutes && <span className="cm-min">{post.minutes}분</span>}
         <span className="pd-date">{post.published}</span>
       </div>
@@ -50,9 +55,23 @@ export function LivePostView({ post }: { post: LivePost }) {
 
       <div className="pd-by">
         <span className="pd-chef">
-          <span className="pd-chef-mark" aria-hidden="true">
-            {post.chef.slice(0, 1)}
-          </span>
+          {/* 프로필 사진. 없으면 이름 첫 글자를 딴 동그란 표시로 대신한다 */}
+          {/* [F2][분기] 글쓴이 사진이 있나? [true] 사진 / [false] avatarLetter(domain/avatar:F7) */}
+          {post.chefAvatar ? (
+            <Image
+              className="pd-chef-face"
+              src={post.chefAvatar}
+              alt=""
+              width={28}
+              height={28}
+              /* 올릴 때 이미 256px 로 줄여 두어서 그대로 내보내도 된다 */
+              unoptimized
+            />
+          ) : (
+            <span className="pd-chef-mark" aria-hidden="true">
+              {avatarLetter(post.chef)}
+            </span>
+          )}
           {post.chef}
         </span>
 

@@ -63,11 +63,15 @@ export type DraftRead =
   | { ok: false; problem: DraftProblem };
 
 /** 갈래를 받아 준다. 모르는 값이면 보통 글로 본다 */
+// [F1][함수] resolveKind(raw): 밖에서 온 값을 글 갈래로 정리
+// 입력: raw → 처리: brand·trend 만 통과 → 출력: PostKind (모르면 'community')
 export function resolveKind(raw: unknown): PostKind {
   return raw === "brand" || raw === "trend" ? raw : "community";
 }
 
 /** 색조를 받아 준다. 모르는 값이면 첫 번째 것으로 */
+// [F2][함수] resolveTone(raw): 밖에서 온 값을 카드 색조로 정리
+// 입력: raw → 처리: herb·cocoa·cream 만 통과 → 출력: PostTone (모르면 'ember')
 export function resolveTone(raw: unknown): PostTone {
   return raw === "herb" || raw === "cocoa" || raw === "cream" ? raw : "ember";
 }
@@ -78,6 +82,8 @@ export function resolveTone(raw: unknown): PostTone {
  * 화면에서 이미 걸렀더라도 여기서 또 본다. 서버로 들어오는 입구는
  * 화면 말고도 있다 — 주소를 알면 누구나 그리로 값을 보낼 수 있다.
  */
+// [F3][함수] readPostDraft(raw): 글쓰기 폼에서 온 값을 글 초안으로 받아 줄지 판정
+// 입력: raw(FormData 에서 꺼낸 글자 묶음) → 처리: 칸마다 길이·범위·주소 검사 → 출력: DraftRead
 export function readPostDraft(raw: {
   title: string;
   summary: string;
@@ -88,42 +94,57 @@ export function readPostDraft(raw: {
   tone: unknown;
   imageUrl: string;
 }): DraftRead {
+  // [F4][흐름] raw.title → trim() → title
+  // [F4][분기] 빈 제목 → 'title-empty' / 80자 초과 → 'title-long' / 아니면 F5
   const title = raw.title.trim();
   if (title.length === 0) return { ok: false, problem: "title-empty" };
   if (title.length > MAX_TITLE) return { ok: false, problem: "title-long" };
 
+  // [F5][흐름] raw.summary → trim() → summary
+  // [F5][분기] 300자 초과 → 'summary-long' / 아니면 F6
   const summary = raw.summary.trim();
   if (summary.length > MAX_SUMMARY) return { ok: false, problem: "summary-long" };
 
   /* 본문은 앞뒤 여백만 떼고 안쪽 줄바꿈은 그대로 둔다.
      사람이 문단을 나눠 쓴 것을 우리가 뭉개면 안 된다 */
+  // [F6][흐름] raw.body → trim() → body (안쪽 줄바꿈은 그대로 둔다)
+  // [F6][분기] 10자 미만 → 'body-short' / 20000자 초과 → 'body-long' / 아니면 F7
   const body = raw.body.trim();
   if (body.length < MIN_BODY) return { ok: false, problem: "body-short" };
   if (body.length > MAX_BODY) return { ok: false, problem: "body-long" };
 
+  // [F7][흐름] raw.badge → trim() → badge (카테고리 태그)
+  // [F7][분기] 빈 값 → 'badge-empty' / 12자 초과 → 'badge-long' / 아니면 F8
   const badge = raw.badge.trim();
   if (badge.length === 0) return { ok: false, problem: "badge-empty" };
   if (badge.length > MAX_BADGE) return { ok: false, problem: "badge-long" };
 
   /* 시간은 안 적어도 된다. 적었으면 숫자여야 하고 범위 안이어야 한다 —
      "30분쯤" 같은 글자가 들어오면 표가 거절한다 */
+  // [F8][흐름] raw.minutes → trim() → typed → Number() → minutes (안 적었으면 null)
   let minutes: number | null = null;
   const typed = raw.minutes.trim();
+  // [F9][분기] typed 가 적혀 있음 → true: 숫자·범위 검사 후 minutes 채움 / false: null 유지
   if (typed.length > 0) {
     const n = Number(typed);
+    // [F10][분기] 숫자가 아니거나 1~1440 밖 → true: 'minutes-range' 반환 / false: F11
     if (!Number.isFinite(n) || n < 1 || n > MAX_MINUTES) {
       return { ok: false, problem: "minutes-range" };
     }
+    // [F11][흐름] n → Math.round() → minutes
     minutes = Math.round(n);
   }
 
   /* 그림 주소는 우리가 올린 것만 받는다. 남의 주소를 적어 넣으면
      그 서버가 우리 화면에 아무 그림이나 띄울 수 있다 */
+  // [F12][흐름] raw.imageUrl → trim() → imageUrl → 우리 버킷 주소인지 검사 → safeImage
   const imageUrl = raw.imageUrl.trim();
   const safeImage = imageUrl.startsWith("https://") && imageUrl.includes("/post-covers/")
     ? imageUrl
     : null;
 
+  // [F13][호출] raw.kind → resolveKind(F1) / raw.tone → resolveTone(F2)
+  // [F13][반환] PostDraft → writePost·revisePost(write-post) → supabase-post-gateway 로 전달
   return {
     ok: true,
     draft: {

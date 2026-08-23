@@ -3,6 +3,8 @@ import { Logo, Waveform } from "@/components/brand";
 import { footerLinks, site } from "@/lib/site-content";
 
 /** 마지막으로 한 번 더 권하는 자리. 발밑의 큰 물결무늬가 불이 피어오르는 느낌을 만든다. */
+// [F1][함수] Cta(): 소개 페이지 맨 아래 '시작하기' 자리
+// 입력: 없음(site-content) → 출력: 화면(JSX)
 export function Cta() {
   return (
     // glow 는 뒤에 모닥불 같은 빛을 깔아 주는 이름표다
@@ -31,6 +33,8 @@ export function Cta() {
 }
 
 /** 맨 아랫부분. 로고와 저작권 한 줄, 그리고 약관·문의 링크. */
+// [F2][함수] SiteFooter(): 소개 페이지 맨 아랫줄
+// 입력: 없음(site-content 의 footerLinks) → 출력: 화면(JSX)
 export function SiteFooter() {
   return (
     <footer>
@@ -51,6 +55,7 @@ export function SiteFooter() {
         {/* 메뉴가 여러 개라서, 읽어 주는 기계가 구분할 수 있게 이름을 붙인다 */}
         <nav aria-label="약관 및 문의">
           {/* 링크 주소가 아직 다 "#" 이라 겹친다. 그래서 겹치지 않는 글자를 이름표로 쓴다 */}
+          {/* [F3][반복] footerLinks 를 훑어 링크를 하나씩 그린다 */}
           {footerLinks.map((l) => (
             <a key={l.label} href={l.href}>
               {l.label}

@@ -8,6 +8,9 @@ import { SiteHeader } from "@/components/site-header";
 import { site } from "@/lib/site-content";
 
 /** 홈페이지. 각 구역을 위에서 아래로 늘어놓기만 하고, 안에 뭘 그릴지는 저마다에게 맡긴다 */
+// [F1][함수] Home(): 소개 페이지 (/)
+// 입력: 없음 → 처리: site-content 의 값을 각 조각에 넘김 → 출력: 화면(JSX)
+// 서버에서 한 번 그려지고 끝난다. 움직이는 것이 없다
 export default function Home() {
   return (
     <>

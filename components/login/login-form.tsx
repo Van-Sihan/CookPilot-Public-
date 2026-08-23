@@ -25,14 +25,19 @@ import { AuthField } from "@/components/auth/auth-field";
 import { Icon } from "@/components/icons";
 import { credentialMessages, loginCopy } from "@/lib/site-content";
 
+// [F1][함수] LoginForm(): 로그인 폼
+// 입력: 사람이 적는 이메일·비밀번호 → 처리: signInAction 에 넘김 → 출력: 화면(JSX)
 export function LoginForm() {
   /* state  — 서버가 돌려준 쪽지 (왜 안 됐는지, 방금 적은 이메일)
      action — form 에 물려 두면 눌렀을 때 서버로 간다
      pending— 다녀오는 중인지. 단추를 잠그는 데 쓴다 */
+  // [F2][흐름] useActionState(signInAction) → state(서버가 준 쪽지) · action(폼에 걸 함수) · pending
+  // 폼 제출 → ▷ signInAction(app/actions/auth.ts:F2) → 성공하면 서버가 /start 로 보낸다
   const [state, action, pending] = useActionState(signInAction, emptyAuthState);
 
   /* 서버는 까닭만 알려 준다. 무슨 말로 보여 줄지는 화면이 정한다 —
      도메인·유스케이스가 지켜 온 규칙을 여기서도 그대로 지킨다 */
+  // [F3][분기] state.reason 이 있나? [true] 까닭을 문장으로 바꿔 message / [false] null
   const message = state.reason ? credentialMessages[state.reason] : null;
 
   return (

@@ -44,13 +44,19 @@ export const DEFAULT_SPEED: AnswerSpeed = "quick";
  * 저장해 둔 값은 사람이 브라우저 개발자 도구로 고쳐 놓을 수도 있고,
  * 예전 판에서 쓰던 이름이 남아 있을 수도 있다. 모르는 값이면 조용히 기본값으로 돌린다.
  */
+// [F1][함수] resolveAnswerSpeed(raw): 저장소에서 꺼낸 값을 답변 속도로 정리
+// 입력: raw(localStorage 의 speed) → 처리: answerSpeeds 목록 대조 → 출력: AnswerSpeed
 export function resolveAnswerSpeed(raw: unknown): AnswerSpeed {
   // 목록에 있는 이름일 때만 그대로 쓴다. includes 로 물어보면 타입까지 좁혀진다
+  // [F2][반환] 목록에 있으면 raw, 없으면 DEFAULT_SPEED → choose-cook-setup 으로 전달
   return answerSpeeds.includes(raw as AnswerSpeed) ? (raw as AnswerSpeed) : DEFAULT_SPEED;
 }
 
 /** 고른 속도에 맞는 모델 이름. 실제로 요청을 보내는 쪽은 이 함수만 부르면 된다 */
+// [F3][함수] modelForSpeed(speed): 고른 속도에 붙는 모델 이름을 꺼낸다
+// 입력: speed → 처리: speedModels 표 조회 → 출력: 모델 이름 문자열
 export function modelForSpeed(speed: AnswerSpeed): string {
   // 위 표에서 꺼내 온다. 표에 없는 속도는 타입이 미리 막아 준다
+  // [F4][반환] speedModels[speed] → modelForSetup(choose-cook-setup) → geminiRecipeGateway 로 전달
   return speedModels[speed];
 }

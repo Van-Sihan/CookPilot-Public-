@@ -23,6 +23,9 @@ export const metadata: Metadata = {
  * 머리말은 바뀔 일이 없어서 여기서 그린다 — 그러면 브라우저가 받을
  * 자바스크립트에 이 부분은 끼지 않는다.
  */
+// [F1][함수] AskPage(): AI 챗봇에게 묻는 화면 (/ask)
+// 입력: 없음 → 처리: 머리말 + AskShell 배치 → 출력: 화면(JSX)
+// AskShell 이 ▷ POST /api/chat (route:F4) 으로 물음을 보낸다
 export default function AskPage() {
   return (
     <>

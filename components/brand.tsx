@@ -34,6 +34,8 @@ const LOGO_BARS: Array<[x: number, y: number, h: number]> = [
 ];
 
 /** 로고 그리기. id 에는 이 로고가 놓이는 자리 이름을 준다 */
+// [F1][함수] Logo({size, id}): 냄비와 불꽃 로고를 SVG 로 그린다
+// 입력: size(크기) + id(색 이름이 겹치지 않게 하는 자리 이름) → 출력: SVG(JSX)
 export function Logo({ size = 30, id }: { size?: number; id: string }) {
   /* 로고가 한 페이지에 여러 번 나오니, 자리 이름을 붙여서 색 이름이 겹치지 않게 한다 */
   const grad = `logo-grad-${id}`;
@@ -77,6 +79,7 @@ export function Logo({ size = 30, id }: { size?: number; id: string }) {
       {/* 왼쪽 손잡이 */}
       <path d="M24 36H14a6 6 0 0 0 0 12h10z" fill="#B94432" />
       {/* 냄비 밑에서 피어오르는 소리 막대들. 가로 자리 값이 다 달라서 그걸 이름표로 쓴다 */}
+      {/* [F2][반복] LOGO_BARS 를 훑어 불꽃 막대를 하나씩 그린다 */}
       {LOGO_BARS.map(([x, y, h]) => (
         <rect
           key={x}
@@ -105,6 +108,8 @@ const LARGE_BARS = [
 ];
 
 /** 물결무늬 그리기. 작은 것과 큰 것은 막대 값만 다르고 그리는 방법은 똑같다 */
+// [F3][함수] Waveform({...}): 소리 그림(막대 여러 개)을 그린다
+// 입력: 막대 수·높이 규칙 → 처리: 막대마다 높이와 지연을 CSS 변수로 → 출력: 화면(JSX)
 export function Waveform({
   variant,
   id,
@@ -156,6 +161,7 @@ export function Waveform({
         </linearGradient>
       </defs>
       {/* 막대 값은 서로 같을 수도 있어서 몇 번째인지를 이름표로 쓴다. 순서가 안 바뀌니 괜찮다 */}
+      {/* [F4][반복] bars 를 훑어 막대를 하나씩 그린다 */}
       {bars.map((h, i) => (
         <rect
           key={i}

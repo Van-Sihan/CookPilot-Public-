@@ -25,11 +25,16 @@ let cachedRaw: string | null = null;
 let cachedRecipe: Recipe | null = null;
 
 /** 명단에 있는 모두에게 한 번씩 알린다 */
+// [F1][함수] notify(): 명단에 있는 모두에게 '바뀌었다' 고 알린다
 function notify() {
   listeners.forEach((fn) => fn());
 }
 
+// [F2][함수] browserRecipeDraftStore: RecipeDraftStore 약속을 localStorage 로 채운다
+// 고르기 → 장보기 → 요리 세 화면이 같은 레시피를 보게 하는 자리다
 export const browserRecipeDraftStore: RecipeDraftStore = {
+  // [F3][함수] save(recipe): 지금 하려는 요리를 담는다
+  // 입력: recipe → 처리: JSON 으로 localStorage 기록 후 notify → 출력: 없음
   save(recipe: Recipe) {
     // 저장을 막아 둔 브라우저에서는 여기서 오류가 나고, 그건 유스케이스가 받아 준다
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(recipe));
@@ -38,6 +43,9 @@ export const browserRecipeDraftStore: RecipeDraftStore = {
     notify();
   },
 
+  // [F4][함수] load(): 담아 둔 레시피를 꺼낸다
+  // 입력: 없음 → 처리: localStorage 읽기 → 글자가 지난번과 다르면 JSON.parse + readRecipe
+  // 출력: Recipe 또는 null (같은 글자면 만들어 둔 객체를 그대로 돌려준다)
   load() {
     // 서버에서 화면을 그리는 동안에는 window 가 아예 없다
     if (typeof window === "undefined") return null;
@@ -67,12 +75,14 @@ export const browserRecipeDraftStore: RecipeDraftStore = {
     return cachedRecipe;
   },
 
+  // [F5][함수] clear(): 담아 둔 레시피를 버린다
   clear() {
     // 빈 값으로 덮지 않고 아예 지운다
     window.localStorage.removeItem(STORAGE_KEY);
     notify();
   },
 
+  // [F6][함수] subscribe(onChange): 바뀌면 알려 달라고 명단에 올린다 → 출력: 해제 함수
   subscribe(onChange: () => void) {
     // 같은 탭에서 생긴 변화를 받을 수 있게 명단에 올린다
     listeners.add(onChange);

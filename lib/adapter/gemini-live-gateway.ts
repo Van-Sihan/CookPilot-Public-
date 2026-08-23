@@ -73,11 +73,18 @@ type ServerMessage = {
  *
  * 미리 만들어 두고 돌려쓰지 않는다. 사람이 키를 바꾸면 새로 만들어야 한다.
  */
+// [F1][함수] geminiLiveGateway(apiKey): 키를 쥔 실시간 말동무 게이트웨이를 만든다
+// 입력: apiKey → 출력: LiveVoiceGateway (open 하나)
 export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
   return {
+    // [F2][함수] open(brief, onEvent): 웹소켓을 열고 말동무를 붙인다
+    // 입력: brief(recipe·gender·tone) + onEvent(일이 생길 때 부를 함수)
+    // 처리: 웹소켓 연결 → setup 전송 → 이벤트를 onEvent 로 흘려보냄
+    // 출력: LiveSession (setupComplete 를 받은 뒤에야 resolve 된다)
     open(brief: CookBrief, onEvent: (e: LiveEvent) => void): Promise<LiveSession> {
       return new Promise((resolve, reject) => {
         // 웹소켓은 머리말을 못 붙여서 키를 주소에 싣는다
+        // [F3][외부] ▷ WebSocket 열기(generativelanguage BidiGenerateContent). 키를 주소에 싣는다
         const ws = new WebSocket(`${WS_ROOT}?key=${encodeURIComponent(apiKey)}`);
 
         /* 소리를 바이트 그대로 주고받는다. 이걸 안 정해 두면 브라우저가
@@ -107,6 +114,8 @@ export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
         let settle = 0;
 
         /** 사람이 한 마디를 끝냈다. 올려 보내고 자리를 비운다 */
+        // [F4][함수] flushMine(): 모아 둔 사람 말을 한 마디로 올려 보낸다
+        // 입력: mine(모듈 안 변수) → 처리: trim 후 비움 → 출력: onEvent({kind:'said', who:'me'})
         const flushMine = () => {
           // 기다리던 시계가 있으면 거둔다
           window.clearTimeout(settle);
@@ -122,6 +131,8 @@ export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
         };
 
         /** 안내가 한 차례를 끝냈다 */
+        // [F5][함수] flushTheirs(): 모아 둔 안내 말을 한 마디로 올려 보낸다
+        // 입력: theirs → 처리: trim 후 비움 → 출력: onEvent({kind:'said', who:'cook'})
         const flushTheirs = () => {
           const text = theirs.trim();
           theirs = "";
@@ -129,6 +140,9 @@ export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
           if (text) onEvent({ kind: "said", said: { who: "cook", text } });
         };
 
+        // [F6][함수] ws.onopen: 이어지자마자 setup 을 한 번 보낸다 (이벤트 핸들러)
+        // [F6][호출] brief → cookingBrief(usecase/cook-along) → systemInstruction
+        // [F6][외부] {model, 목소리, systemInstruction, 전사 켜기} ▷ ws.send()
         ws.onopen = () => {
           // 이어지자마자 "이런 자세로 이런 요리를 도와 달라" 고 한 번 알려 준다
           ws.send(
@@ -158,6 +172,8 @@ export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
           );
         };
 
+        // [F7][함수] ws.onmessage: 서버가 보낸 것을 갈래별로 나눠 onEvent 로 흘린다 (이벤트 핸들러)
+        // 입력: e.data(글자 또는 바이트) → 처리: JSON 파싱 → 종류별 분기 → 출력: onEvent 호출
         ws.onmessage = async (e: MessageEvent) => {
           /* 서버가 글자로 보낼 때도 있고 바이트로 보낼 때도 있다.
              바이트로 오면 글자로 풀어야 JSON 으로 읽을 수 있다 */
@@ -175,6 +191,8 @@ export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
           }
 
           // 준비가 끝났다. 이제야 손잡이를 넘겨준다
+          // [F8][분기] setupComplete 이고 아직 준비 전 → true: ready=true, open 알림, session resolve
+          // 준비 전에 소리를 보내면 그냥 버려지므로 여기서야 손잡이를 넘긴다
           if (msg.setupComplete && !ready) {
             ready = true;
             onEvent({ kind: "open" });
@@ -186,9 +204,12 @@ export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
           if (!content) return;
 
           // 사람이 말을 끊었다. 틀던 소리를 버려야 말이 겹치지 않는다
+          // [F9][분기] interrupted → 스피커에 '틀던 소리를 버려라' 를 알린다
           if (content.interrupted) onEvent({ kind: "interrupted" });
 
           /* 사람이 한 말은 조각조각 온다. 모아 두고, 더 안 들어오면 그때 한 마디로 친다 */
+          // [F10][분기] 사람 말 조각이 옴 → mine 에 이어 붙이고 0.7초 시계를 다시 건다
+          // 시계가 끝나면 flushMine(F4) 이 한 마디로 올린다
           if (content.inputTranscription?.text) {
             mine += content.inputTranscription.text;
 
@@ -201,6 +222,7 @@ export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
           if (content.outputTranscription?.text) theirs += content.outputTranscription.text;
 
           // 안내 목소리 조각을 그때그때 스피커로 넘긴다. 모아 두면 말이 늦는다
+          // [F11][반복] 안내 목소리 조각들을 훑으며 onEvent({kind:'audio'}) 로 그때그때 넘긴다
           for (const part of content.modelTurn?.parts ?? []) {
             if (part.inlineData?.data) {
               onEvent({ kind: "audio", pcm: fromBase64(part.inlineData.data) });
@@ -210,12 +232,14 @@ export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
           /* 한 차례가 끝났으면 안내가 한 말을 올린다.
              사람이 한 말은 기다리지 않고 위에서 알아서 올라간다 —
              다만 아직 안 올라간 것이 남아 있으면 이참에 같이 올린다 */
+          // [F12][분기] 모델 차례가 끝남 → 남은 사람 말(F4)과 안내 말(F5)을 올린다
           if (content.turnComplete) {
             if (mine.trim()) flushMine();
             flushTheirs();
           }
         };
 
+        // [F13][에러] 웹소켓 오류(까닭은 브라우저가 감춘다) → 아직 준비 전이면 reject
         ws.onerror = () => {
           /* 웹소켓은 왜 실패했는지 알려 주지 않는다 — 브라우저가 일부러 감춘다.
              키가 틀려도, 인터넷이 끊겨도 똑같이 여기로 온다.
@@ -223,6 +247,7 @@ export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
           if (!ready) reject(new Error("live-open-failed"));
         };
 
+        // [F14][에러] 끊김 → 1007·1008 이면 'key', 그 밖이면 'unreachable'/'closed' 로 onEvent
         ws.onclose = (e) => {
           /* 1007·1008 은 "보낸 것이 잘못됐다" 는 뜻이라 대개 키 문제다.
              그 밖에는 그냥 끊긴 것으로 본다 */
@@ -238,7 +263,10 @@ export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
           if (!ready) reject(new Error("live-closed"));
         };
 
+        // [F15][함수] session: 이어진 뒤에 쓰는 손잡이 (send·say·close)
         const session: LiveSession = {
+          // [F16][함수] send(pcm): 마이크 소리 한 조각을 보낸다
+          // 입력: pcm(Int16Array) → 처리: base64 로 옮김 → 출력: ▷ ws.send(realtimeInput)
           send(pcm: Int16Array) {
             // 아직 준비가 안 됐거나 이미 닫혔으면 보내 봐야 버려진다
             if (!ready || ws.readyState !== WebSocket.OPEN) return;
@@ -257,6 +285,8 @@ export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
             );
           },
 
+          // [F17][함수] say(text): 글로 한마디 건넨다(걸음 읽기 지시문이 여기로 온다)
+          // 입력: text → 처리: clientContent 로 감쌈 → 출력: ▷ ws.send()
           say(text: string) {
             if (!ready || ws.readyState !== WebSocket.OPEN) return;
 
@@ -271,6 +301,7 @@ export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
             );
           },
 
+          // [F18][함수] close(): 시계를 거두고 웹소켓을 닫는다
           close() {
             // 기다리던 시계를 거둔다. 안 거두면 끊은 뒤에 말이 한 번 더 올라간다
             window.clearTimeout(settle);
@@ -294,6 +325,10 @@ export function geminiLiveGateway(apiKey: string): LiveVoiceGateway {
  * 돌려주는 함수를 부르면 도중에라도 끊는다. 사람이 다른 목소리를 연달아 눌렀을 때
  * 앞엣것을 끊지 않으면 둘이 겹쳐서 들린다.
  */
+// [F19][함수] previewVoice(apiKey, gender, tone, line, onAudio, onDone): 한 문장만 읽힌다
+// 입력: 키 + 성별 + 말투 + 읽을 문장 + 소리 콜백 + 끝 콜백
+// 처리: 웹소켓 열기 → setup(목소리만) → 문장 전송 → 소리 조각을 onAudio 로
+// 출력: 끊는 함수 (setup-picker 의 미리 듣기, cook-shell 의 스피커 단추가 쓴다)
 export function previewVoice(
   apiKey: string,
   gender: VoiceGender,
@@ -302,17 +337,22 @@ export function previewVoice(
   onAudio: (pcm: Uint8Array) => void,
   onDone: (problem?: "key" | "unreachable") => void,
 ): () => void {
+  // [F20][외부] ▷ WebSocket 열기. 요리용 세션과 달리 레시피도 마이크도 안 붙인다
   const ws = new WebSocket(`${WS_ROOT}?key=${encodeURIComponent(apiKey)}`);
   ws.binaryType = "arraybuffer";
 
   /* 한 번만 알리려고 둔다. 다 읽고 나서 닫으면 onclose 로 또 불리기 때문이다 */
   let told = false;
+  // [F21][함수] done(problem): 한 번만 끝을 알린다
+  // 입력: problem → 처리: told 로 두 번 알리는 것을 막음 → 출력: onDone 호출
   const done = (problem?: "key" | "unreachable") => {
     if (told) return;
     told = true;
     onDone(problem);
   };
 
+  // [F22][함수] ws.onopen: 목소리만 정한 setup 을 보낸다 (이벤트 핸들러)
+  // [F22][외부] {목소리 이름, '따옴표 안만 읽어라' 지시} ▷ ws.send()
   ws.onopen = () => {
     ws.send(
       JSON.stringify({
@@ -337,6 +377,7 @@ export function previewVoice(
     );
   };
 
+  // [F23][함수] ws.onmessage: setupComplete 를 받으면 문장을 보내고, 소리 조각을 onAudio 로
   ws.onmessage = async (e: MessageEvent) => {
     const raw =
       typeof e.data === "string" ? e.data : await new Blob([e.data as ArrayBuffer]).text();
@@ -349,6 +390,7 @@ export function previewVoice(
     }
 
     // 준비가 끝났으면 읽을 문장을 건넨다
+    // [F24][분기] setupComplete → true: 읽을 문장을 clientContent 로 ▷ ws.send() 후 return
     if (msg.setupComplete) {
       ws.send(
         JSON.stringify({
@@ -362,24 +404,29 @@ export function previewVoice(
     }
 
     // 소리 조각을 그때그때 넘긴다
+    // [F25][반복] 소리 조각들을 훑으며 onAudio(pcm) 로 넘긴다 → 스피커가 이어 튼다
     for (const part of msg.serverContent?.modelTurn?.parts ?? []) {
       if (part.inlineData?.data) onAudio(fromBase64(part.inlineData.data));
     }
 
     // 다 읽었으면 끊는다. 미리 듣기는 한 문장이면 끝이다
+    // [F26][분기] 한 문장을 다 읽음 → done() 호출 후 웹소켓을 닫는다
     if (msg.serverContent?.turnComplete) {
       done();
       ws.close();
     }
   };
 
+  // [F27][에러] 오류 → done('unreachable') → 부르는 쪽이 브라우저 목소리로 내려간다
   ws.onerror = () => done("unreachable");
 
+  // [F28][에러] 끊김 → 1007·1008 이면 'key', 아니면 'unreachable'
   ws.onclose = (e) => {
     // 1007·1008 은 "보낸 것이 잘못됐다" 는 뜻이라 대개 키 문제다
     done(e.code === 1007 || e.code === 1008 ? "key" : "unreachable");
   };
 
+  // [F29][반환] 끊는 함수 → setup-picker·cook-shell 이 다음 것을 누를 때 앞엣것을 끊는다
   return () => {
     told = true;
     if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) ws.close();

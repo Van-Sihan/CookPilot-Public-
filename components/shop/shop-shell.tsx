@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { Icon } from "@/components/icons";
 import { RecipeSteps } from "@/components/shop/recipe-steps";
+import { YoutubeSource } from "@/components/shop/youtube-source";
 import { browserRecipeDraftStore } from "@/lib/adapter/browser-recipe-draft-store";
 import type { Ingredient } from "@/lib/domain/recipe";
 import {
@@ -28,6 +29,8 @@ import {
 import { findDraft, watchDraft } from "@/lib/usecase/plan-recipe";
 import { mallLabels, shopCopy, sponsoredFor, wonText } from "@/lib/cook-content";
 
+// [F1][함수] ShopShell(): 장보기 화면의 껍데기
+// 입력: 없음(담아 둔 레시피) → 처리: 체크 목록·쇼핑몰·복사·출처 → 출력: 화면(JSX)
 export function ShopShell() {
   /* 요리 화면으로 넘어갈 때 쓴다 */
   const router = useRouter();
@@ -40,6 +43,7 @@ export function ShopShell() {
   );
 
   /* 지금 하려는 요리. 브라우저 저장 공간에 있어서 "바깥 값 지켜보기" 로 따라간다 */
+  // [F2][외부] ▷ useSyncExternalStore(watch, findDraft) → recipe
   const recipe = useSyncExternalStore(
     watch,
     () => findDraft(browserRecipeDraftStore),
@@ -48,6 +52,8 @@ export function ShopShell() {
   );
 
   /* 어느 쇼핑몰로 보낼지. 이 화면에서만 쓰는 값이라 담아 두지 않는다 */
+  // [F3][흐름] 고른 쇼핑몰 → mall / 체크를 **뺀** 재료 이름 → unchecked / 복사했는지 → copied
+  // 체크한 것이 아니라 뺀 것을 담는 까닭 — 레시피가 바뀌어도 기본 상태가 살아 있다
   const [mall, setMall] = useState<ShoppingMall>(DEFAULT_MALL);
 
   /*
@@ -66,17 +72,22 @@ export function ShopShell() {
    * 처음에 체크를 빼 둘 재료 — 집에 늘 있는 양념들.
    * 레시피가 바뀌면 다시 셈해야 해서 레시피에 매달아 둔다.
    */
+  // [F4][흐름] recipe.ingredients 중 pantry 인 것 → pantryNames (처음에 체크가 빠져 있다)
   const pantryNames = useMemo(
     () => new Set(recipe?.ingredients.filter((i) => i.pantry).map((i) => i.name) ?? []),
     [recipe],
   );
 
   /** 이 재료가 지금 장바구니에 담겨 있는지 */
+  // [F5][함수] isChecked(name): 그 재료가 지금 체크돼 있는지
+  // 입력: name → 처리: unchecked 와 pantryNames 를 함께 본다 → 출력: boolean
   const isChecked = (name: string) =>
     // 사람이 직접 뺀 것이 먼저다. 그다음이 "집에 있는 것" 기본값이다
     unchecked.has(name) ? false : !pantryNames.has(name);
 
   /** 체크를 뒤집는다 */
+  // [F6][함수] toggle(name): 체크를 뒤집는다
+  // 입력: name → 처리: unchecked 집합에 넣거나 뺀다 → 출력: 없음
   function toggle(name: string) {
     setUnchecked((prev) => {
       // Set 은 고쳐 쓰면 React 가 못 알아챈다. 늘 새로 만들어 넘긴다
@@ -92,6 +103,7 @@ export function ShopShell() {
   }
 
   /* 지금 담긴 재료들. 아래 여러 군데가 이 값을 쓴다 */
+  // [F7][반복] ingredients 를 훑어 체크된 것만 남긴다 → cart (장바구니)
   const cart: readonly Ingredient[] = useMemo(
     () => recipe?.ingredients.filter((i) => isChecked(i.name)) ?? [],
     // isChecked 가 이 둘을 보고 답하므로 둘이 바뀔 때만 다시 센다
@@ -100,6 +112,7 @@ export function ShopShell() {
   );
 
   /* 정해 둔 요리가 없으면 여기서 끝낸다. 아래 화면은 레시피가 있어야 그릴 수 있다 */
+  // [F8][분기] 정해 둔 요리 없음 → true: '요리 고르러 가기' 를 그리고 끝낸다 / false: 아래를 그린다
   if (!recipe) {
     return (
       <div className="shop-empty">
@@ -115,6 +128,9 @@ export function ShopShell() {
   }
 
   /** 목록을 글자로 옮겨 클립보드에 넣는다 */
+  // [F9][함수] copyList(): 장보기 목록을 클립보드로 복사한다
+  // 입력: cart → 처리: shoppingListText(domain/shopping:F6) → ▷ navigator.clipboard
+  // 출력: 없음(비동기)
   async function copyList() {
     try {
       // 어떤 모양으로 옮길지는 도메인이 정한다. 화면마다 다르면 곤란하다
@@ -329,24 +345,21 @@ export function ShopShell() {
           {shopCopy.sourceLabel}
         </h2>
 
-        {/* 어디서 온 레시피인지. 지어내지 않고 도메인이 담아 둔 값을 그대로 쓴다 */}
-        <p className="shop-source">
-          {recipe.source.kind === "youtube" ? (
-            <>
-              {recipe.source.channel} ·{" "}
-              <a href={recipe.source.url} target="_blank" rel="noreferrer noopener">
-                영상 보기
-              </a>
-            </>
-          ) : recipe.source.kind === "shelf" ? (
-            shopCopy.sourceShelf
-          ) : recipe.source.kind === "community" ? (
-            // 커뮤니티 글에서 가져온 것이면 적은 사람을 밝힌다
-            `${shopCopy.sourceCommunity} · ${recipe.source.chef}`
-          ) : (
-            shopCopy.sourceAi
-          )}
-        </p>
+        {/* 어디서 온 레시피인지. 지어내지 않고 도메인이 담아 둔 값을 그대로 쓴다.
+            유튜브만 한 줄이 아니라 카드로 크게 보여 준다 — 남의 영상에서 옮겨 온 것이라
+            "무엇에서" 왔는지가 한눈에 보여야 하고, 우리가 만든 레시피와 헷갈리면 안 된다 */}
+        {recipe.source.kind === "youtube" ? (
+          <YoutubeSource source={recipe.source} />
+        ) : (
+          <p className="shop-source">
+            {recipe.source.kind === "shelf"
+              ? shopCopy.sourceShelf
+              : recipe.source.kind === "community"
+                ? // 커뮤니티 글에서 가져온 것이면 적은 사람을 밝힌다
+                  `${shopCopy.sourceCommunity} · ${recipe.source.chef}`
+                : shopCopy.sourceAi}
+          </p>
+        )}
 
         <h2 className="shop-h2 shop-h2-gap">
           <span className="shop-h2-ico" aria-hidden="true">

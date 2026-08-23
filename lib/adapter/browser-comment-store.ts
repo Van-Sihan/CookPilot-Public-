@@ -28,11 +28,14 @@ let cachedRaw: string | null = null;
 let cachedBag: Bag = {};
 
 /** 명단에 있는 모두에게 한 번씩 알린다 */
+// [F1][함수] notify(): 명단에 있는 모두에게 '바뀌었다' 고 알린다
 function notify() {
   listeners.forEach((fn) => fn());
 }
 
 /** 값 하나가 댓글 모양인지 본다. 개발자 도구로 아무거나 넣어 뒀을 수 있다 */
+// [F2][함수] readComment(value): 담겨 있던 값 하나가 댓글 모양인지 확인
+// 입력: unknown → 처리: id·who·when·text 가 모두 글자인지 → 출력: PostComment 또는 null
 function readComment(value: unknown): PostComment | null {
   // 객체가 아니면 볼 것도 없다. null 도 typeof 로는 "object" 라서 따로 거른다
   if (typeof value !== "object" || value === null) return null;
@@ -49,6 +52,8 @@ function readComment(value: unknown): PostComment | null {
 }
 
 /** 담아 둔 글자를 자루로 푼다. 손상된 줄은 조용히 버린다 */
+// [F3][함수] parse(raw): 담겨 있던 글자를 '글 id → 댓글 목록' 자루로 푼다
+// 입력: raw → 처리: JSON.parse 후 줄마다 readComment(F2) → 출력: Bag
 function parse(raw: string): Bag {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -77,13 +82,17 @@ function parse(raw: string): Bag {
 }
 
 /** 지금 담겨 있는 것을 자루로 꺼낸다. 글자가 그대로면 만들어 둔 자루를 그대로 쓴다 */
+// [F4][함수] readBag(): 지금 담겨 있는 자루를 꺼낸다(캐시 포함)
+// 입력: 없음 → 처리: localStorage 읽기 → 글자가 지난번과 다르면 parse(F3) → 출력: Bag
 function readBag(): Bag {
   // 서버에서 화면을 그리는 동안에는 window 가 아예 없다
   if (typeof window === "undefined") return {};
 
+  // [F5][외부] ▷ localStorage(cookpilot.comments) 읽기 → raw
   const raw = window.localStorage.getItem(STORAGE_KEY);
 
   // 글자가 지난번과 똑같으면 새로 풀지 않는다 — 위에 적어 둔 까닭이다
+  // [F6][분기] 글자가 지난번과 다름 → true: 다시 parse 해서 캐시 갱신 / false: 캐시 그대로
   if (raw !== cachedRaw) {
     cachedRaw = raw;
     cachedBag = raw === null ? {} : parse(raw);
@@ -92,13 +101,18 @@ function readBag(): Bag {
   return cachedBag;
 }
 
+// [F7][함수] browserCommentStore: CommentStore 약속을 localStorage 로 채운다
 export const browserCommentStore: CommentStore = {
+  // [F8][함수] load(postId): 그 글에 쌓아 둔 댓글을 꺼낸다
+  // 입력: postId → 처리: readBag(F4) 에서 그 칸만 → 출력: PostComment[]
   load(postId: string) {
     /* 없을 때 `[]` 를 그때그때 만들면 안 된다. 늘 같은 빈 목록을 돌려줘야
        React 가 "그대로다" 라고 알아본다 */
     return readBag()[postId] ?? NO_COMMENTS;
   },
 
+  // [F9][함수] add(postId, comment): 댓글 한 줄을 쌓는다
+  // 입력: postId + comment → 처리: 자루에 붙여 localStorage 기록 후 notify → 출력: 없음
   add(postId: string, comment: PostComment) {
     // 지금 담겨 있는 것을 먼저 읽는다. 다른 글의 댓글을 지우지 않으려는 것이다
     const bag = readBag();
@@ -114,6 +128,7 @@ export const browserCommentStore: CommentStore = {
     notify();
   },
 
+  // [F10][함수] subscribe(onChange): 바뀌면 알려 달라고 명단에 올린다 → 출력: 해제 함수
   subscribe(onChange: () => void) {
     // 같은 탭에서 생긴 변화를 받을 수 있게 명단에 올린다
     listeners.add(onChange);

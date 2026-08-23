@@ -21,6 +21,9 @@ export const metadata: Metadata = {
  * 이 파일은 서버에서 한 번 그려지고 끝난다. 책은 브라우저에만 있어서
  * 움직이는 것은 전부 ShelfStand 안에 있다.
  */
+// [F1][함수] ShelfPage(): 내 서재 화면 (/shelf)
+// 입력: 없음 → 처리: 머리말 + ShelfStand 배치 → 출력: 화면(JSX)
+// 책은 브라우저에만 있어서 움직이는 것은 전부 ShelfStand 안에 있다
 export default function ShelfPage() {
   return (
     <>

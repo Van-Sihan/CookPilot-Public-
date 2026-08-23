@@ -42,6 +42,10 @@ export const metadata: Metadata = {
  * `/community` 와 나란히 놓고 무엇이 나아지고 무엇을 잃었는지 보려고 만들었다.
  * 자바스크립트가 움직일 일이 하나도 없어서 통째로 서버에서 그려진다.
  */
+// [F1][함수] Community2Page(): 시안을 그대로 옮긴 견주기용 화면 (/community2)
+// 입력: 없음 → 처리: 붙박이 글자와 그림을 배치 → 출력: 화면(JSX)
+// 데이터 흐름이 없다. 값을 가져오지도, 어디로 보내지도 않는다 —
+// design/blogmain.png 와 눈으로 견주려고 만든 화면이라 진짜 목록은 /community 다
 export default function Community2Page() {
   return (
     // 제목 글꼴(Instrument Serif)은 app/layout.tsx 가 이미 문서 전체에 걸어 뒀고,

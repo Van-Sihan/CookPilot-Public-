@@ -112,6 +112,8 @@ export type Setup =
  * 이름으로 주소를 찾는 일(describeIndex)을 건너뛰므로, 이름이 조금 어긋나도
  * 실제 동작에는 지장이 없다.
  */
+// [F1][함수] nameFromHost(host): 파인콘 호스트 주소에서 인덱스 이름만 뽑는다
+// 입력: host 주소 → 처리: 첫 칸에서 뒤 해시 제거 → 출력: 인덱스 이름
 function nameFromHost(host: string): string {
   // 앞의 프로토콜과 뒤의 경로를 걷어 내고 첫 마디만 본다
   const label = host.replace(/^https?:\/\//, "").split(".")[0] ?? "";
@@ -132,7 +134,11 @@ function nameFromHost(host: string): string {
  * 키를 아직 안 넣은 사람에게 화면이 "무엇을 하라" 고 말해 줄 수 있어야 한다.
  * "500 오류" 만 뜨면 어디를 고쳐야 할지 알 수 없다.
  */
+// [F2][함수] ragSetup(options): 환경 변수와 브라우저 키를 모아 채비를 만든다
+// 입력: options.googleKey(브라우저가 넣은 키) → 처리: env 읽기 + 빠진 값 세기
+// 출력: {ok:true, 키·인덱스} 또는 {ok:false, missing}
 export function ragSetup(options?: { googleKey?: string }): Setup {
+  // [F3][흐름] env → pineconeKey / options.googleKey 또는 env → googleKey
   const pineconeKey = process.env.PINECONE_API_KEY;
 
   /* 제미나이 키는 사람이 시작 화면에서 넣어 둔 것을 받아 쓴다.
@@ -144,19 +150,23 @@ export function ragSetup(options?: { googleKey?: string }): Setup {
   const needsGoogle = options !== undefined;
 
   // 주소는 사람이 통째로 붙여넣든 도메인만 붙여넣든 둘 다 받아 준다
+  // [F4][흐름] env PINECONE_HOST → 정리 → host → (이름이 없으면) nameFromHost(F1) → indexName
   const rawHost = process.env.PINECONE_HOST?.trim();
   const host = rawHost ? rawHost.replace(/^https?:\/\//, "").replace(/\/+$/, "") : "";
 
   // 이름을 적어 뒀으면 그것을 쓰고, 없으면 주소에서 뽑아낸다
   const indexName = process.env.PINECONE_INDEX?.trim() || (host ? nameFromHost(host) : "");
 
+  // [F5][흐름] 빠진 값 이름을 missing 에 모은다
   const missing: string[] = [];
   if (!pineconeKey) missing.push("PINECONE_API_KEY");
   if (!indexName) missing.push("PINECONE_INDEX 또는 PINECONE_HOST");
   if (needsGoogle && !googleKey) missing.push("제미나이 API 키");
 
+  // [F6][분기] 빠진 값이 있음 → true: {ok:false, missing} 반환 / false: F7
   if (missing.length > 0 || !pineconeKey || !indexName) return { ok: false, missing };
 
+  // [F7][반환] {ok:true, …} → openStore(F8) · indexReviews(F10) · run(F22) 이 쓴다
   return {
     ok: true,
     pineconeKey,
@@ -169,9 +179,13 @@ export function ragSetup(options?: { googleKey?: string }): Setup {
 }
 
 /** 파인콘 인덱스를 잡고 랭체인이 쓸 저장소로 감싼다 */
+// [F8][함수] openStore(setup): 파인콘 인덱스를 잡고 랭체인 저장소로 감싼다
+// 입력: setup → 처리: Pinecone 클라이언트 + PineconeEmbeddings → 출력: PineconeStore
 async function openStore(setup: Extract<Setup, { ok: true }>) {
   const pinecone = new Pinecone({ apiKey: setup.pineconeKey });
 
+  // [F9][외부] ▷ 파인콘 인덱스 연결(PineconeStore.fromExistingIndex) → store
+  // 임베딩도 파인콘에게 시킨다 — 자기 인덱스에 넣을 것이면 값이 안 붙는다
   return PineconeStore.fromExistingIndex(
     /* 임베딩을 파인콘에게 시킨다. OpenAI 임베딩을 쓰면 그만큼 값이 붙는데,
        파인콘은 자기 인덱스에 넣을 것이면 공짜로 해 준다 */
@@ -197,9 +211,13 @@ export type IndexResult =
  * 같은 id 로 다시 올리면 덮어쓴다. 그래서 몇 번을 눌러도 같은 후기가
  * 여러 벌 쌓이지 않는다 — CSV 를 고치고 다시 눌러도 된다.
  */
+// [F10][함수] indexReviews(reviews): 후기를 파인콘에 올린다(색인)
+// 입력: reviews(csv-reviews 가 읽은 목록) → 처리: Document 로 옮김 → 나눠서 업로드
+// 출력: {ok:true, count} 또는 까닭
 export async function indexReviews(reviews: readonly Review[]): Promise<IndexResult> {
   /* 올리는 데는 파인콘만 있으면 된다. 답을 만들 때 쓰는 제미나이 키까지
      여기서 요구하면, 키 하나가 없다고 자료도 못 올리게 된다 */
+  // [F11][호출] ragSetup(F2) → setup (여기서는 제미나이 키가 없어도 된다)
   const setup = ragSetup();
 
   if (!setup.ok) {
@@ -211,6 +229,8 @@ export async function indexReviews(reviews: readonly Review[]): Promise<IndexRes
 
     /* 후기를 랭체인의 Document 로 바꾼다. pageContent 가 벡터가 되는 글자이고,
        metadata 는 검색 결과와 함께 돌아와 답에 출처를 붙이게 해 준다 */
+    // [F12][반복] reviews 를 훑으며 reviewText(domain/review) → Document(pageContent + metadata)
+    // pageContent 가 그대로 벡터가 되고, metadata 는 답에 출처를 붙일 때 돌아온다
     const docs = reviews.map(
       (r) =>
         new Document({
@@ -229,6 +249,8 @@ export async function indexReviews(reviews: readonly Review[]): Promise<IndexRes
     const ids = reviews.map((r) => r.id);
 
     // 나눠서 올린다. 한 번에 다 보내면 임베딩 모델이 건수로 거절한다
+    // [F13][반복] docs 를 EMBED_BATCH(80)씩 잘라 올린다 — 한 번에 다 보내면 건수로 거절당한다
+    // [F13][외부] docs 조각 + id ▷ store.addDocuments() — 파인콘에 기록
     for (let at = 0; at < docs.length; at += EMBED_BATCH) {
       // id 를 우리가 정해서 넘긴다. 안 넘기면 랭체인이 새로 만들어 매번 새 줄이 쌓인다
       await store.addDocuments(docs.slice(at, at + EMBED_BATCH), {
@@ -236,13 +258,17 @@ export async function indexReviews(reviews: readonly Review[]): Promise<IndexRes
       });
     }
 
+    // [F14][반환] {ok:true, count} → app/api/kitchen/index 가 몇 건 올렸는지 알린다
     return { ok: true, count: docs.length };
   } catch (error) {
+    // [F15][에러] 올리다 실패 → failedIndex(F16) 로 까닭을 정해 반환
     return failedIndex(error);
   }
 }
 
 /** 올리다 난 오류를 우리가 쓰기로 한 낱말로 바꾼다 */
+// [F16][함수] failedIndex(error): 올리다 난 오류를 우리 낱말로 바꾼다
+// 입력: error → 처리: 메시지에서 401/403 찾기 → 출력: {ok:false, reason, detail}
 function failedIndex(error: unknown): IndexResult {
   const text = error instanceof Error ? error.message : String(error);
 
@@ -261,12 +287,15 @@ function failedIndex(error: unknown): IndexResult {
  * 둘 중 어느 쪽 탓인지 가르려면 이 단계를 따로 볼 수 있어야 한다 —
  * 붙여 놓고 보면 "답이 이상하다" 밖에 안 보인다.
  */
+// [F17][함수] searchOnly(question, take): 답은 안 만들고 검색만 해 본다(점검용)
+// 입력: question + take → 처리: openStore(F8) → 유사도 검색 → 출력: 걸린 문서와 점수
 export async function searchOnly(question: string, take = TAKE) {
   const setup = ragSetup();
 
   if (!setup.ok) return { ok: false as const, missing: setup.missing };
 
   const store = await openStore(setup);
+  // [F18][외부] question ▷ 파인콘 유사도 검색 → docs(문서 + 점수)
   const docs = await store.similaritySearchWithScore(question, take);
 
   return {
@@ -284,6 +313,8 @@ export async function searchOnly(question: string, take = TAKE) {
 }
 
 /** 검색 결과 하나를 출처로 바꾼다 */
+// [F19][함수] refOf(doc): 검색으로 걸린 문서를 출처 한 줄로 옮긴다
+// 입력: Document → 처리: metadata 에서 dishId·dish·author·rating 꺼냄 → 출력: SourceRef
 function refOf(doc: Document): SourceRef {
   const meta = doc.metadata as Record<string, unknown>;
 
@@ -296,6 +327,8 @@ function refOf(doc: Document): SourceRef {
 }
 
 /** 지난 대화를 랭체인이 받는 모양으로 바꾼다 */
+// [F20][함수] historyMessages(history): 지난 대화를 랭체인이 아는 모양으로 바꾼다
+// 입력: ChatTurn 목록 → 처리: [role, content] 쌍으로 → 출력: 배열
 function historyMessages(history: readonly ChatTurn[]) {
   // 랭체인은 [역할, 내용] 짝의 배열을 받는다. 우리 role 이름을 그대로 쓴다
   return history.map((t) => [t.role, t.content] as [string, string]);
@@ -312,20 +345,28 @@ function historyMessages(history: readonly ChatTurn[]) {
  * 두 번째 칸에서 `docs` 를 같이 들고 나오는 것이 요점이다. 답만 받으면
  * "무엇을 근거로 답했는가" 를 화면에 붙일 수 없다.
  */
+// [F21][함수] langchainRag(googleKey): 브라우저 키를 쥔 RAG 체인을 만든다
+// 입력: googleKey(사람이 넣은 제미나이 키) → 출력: RagChain (run 하나)
 export function langchainRag(googleKey: string): RagChain {
   return {
+    // [F22][함수] run(question, history): 검색해서 근거를 모으고 답을 만든다
+    // 입력: question + history → 처리: 검색 → 프롬프트 조립 → 제미나이 → 출처 접기
+    // 출력: ChainAnswer (비동기)
     async run(question, history): Promise<ChainAnswer> {
       const setup = ragSetup({ googleKey });
 
       // 키가 없는 것은 "키가 틀렸다" 와 화면에서 할 말이 같다
+      // [F23][분기] 채비가 모자람 → true: 'key' 반환(화면에서 할 말이 같다) / false: F24
       if (!setup.ok) return { ok: false, reason: "key" };
 
       try {
         const store = await openStore(setup);
 
         // 가장 비슷한 후기 다섯 건만 가져온다
+        // [F24][흐름] store → asRetriever({k:5}) → retriever (가장 비슷한 후기 다섯 건)
         const retriever = store.asRetriever({ k: TAKE });
 
+        // [F25][흐름] googleKey + CHAT_MODEL → chat (temperature 0.2 — 지어내지 않게)
         const chat = new ChatGoogleGenerativeAI({
           model: CHAT_MODEL,
           apiKey: setup.googleKey,
@@ -335,6 +376,7 @@ export function langchainRag(googleKey: string): RagChain {
           maxOutputTokens: 900,
         });
 
+        // [F26][흐름] system 규칙 + history 자리 + human 물음 → prompt
         const prompt = ChatPromptTemplate.fromMessages([
           ["system", SYSTEM_TEMPLATE],
           /* 지난 대화가 들어가는 자리. 이게 있어야 "그거 몇 분이라고 했지?" 가
@@ -343,9 +385,11 @@ export function langchainRag(googleKey: string): RagChain {
           ["human", "{input}"],
         ]);
 
+        // [F27][흐름] 파이프라인 조립: (검색 → context) → (prompt → chat → 글자) + 원본 문서
         const chain = RunnableSequence.from([
           {
             // 검색해서 문서를 가져오되 원본도 함께 들고 나온다
+            // [F28][외부] input ▷ retriever.invoke() — 파인콘 검색 → docs → 글자로 이어 붙여 context
             context: async (input: string) => {
               const docs = await retriever.invoke(input);
 
@@ -375,6 +419,7 @@ export function langchainRag(googleKey: string): RagChain {
           },
         ]);
 
+        // [F29][외부] question ▷ chain.invoke() — 검색 + 제미나이 생성 → out(answer, docs)
         const out = (await chain.invoke(question)) as {
           answer: string;
           docs: Document[];
@@ -382,17 +427,22 @@ export function langchainRag(googleKey: string): RagChain {
 
         /* 걸린 후기가 없으면 답할 근거가 없다. 모델에게 "모르겠다" 를 시키지 않고
            여기서 끝낸다 — 값도 안 들고 더 정확하다 */
+        // [F30][분기] 걸린 후기 0건 → true: 'no-hits' 반환 / false: F31
         if (out.docs.length === 0) return { ok: false, reason: "no-hits" };
 
         const text = (out.answer ?? "").trim();
 
         // 안전 필터에 걸리면 200 인데 글자가 비어 온다. 빈 말풍선은 고장으로 보인다
+        // [F31][분기] 답 글자가 빔(안전 필터) → true: 'no-hits' 반환 / false: F32
         if (text.length === 0) return { ok: false, reason: "no-hits" };
 
         /* 같은 요리의 후기가 다섯 건 다 걸릴 수 있다. 그때 출처를 다섯 줄
            늘어놓으면 근거가 많아 보이지만 실은 글 하나다 */
+        // [F32][호출] out.docs → refOf(F19) → foldSources(domain/ask) → 접힌 출처
+        // [F32][반환] {ok:true, text, sources} → askKitchen → /api/chat → ask-shell 화면으로
         return { ok: true, text, sources: foldSources(out.docs.map(refOf)) };
       } catch (error) {
+        // [F33][에러] 파이프라인이 던짐 → whyFailed(F34) 로 까닭을 정해 반환
         return { ok: false, reason: whyFailed(error) };
       }
     },
@@ -400,6 +450,8 @@ export function langchainRag(googleKey: string): RagChain {
 }
 
 /** 파이프라인이 던진 오류를 우리가 쓰기로 한 낱말로 바꾼다 */
+// [F34][함수] whyFailed(error): 파이프라인 오류를 우리 낱말로 바꾼다
+// 입력: error → 처리: 404→empty-index, 401/403→key, 429→too-many → 출력: 까닭
 function whyFailed(error: unknown): Exclude<ChainAnswer, { ok: true }>["reason"] {
   const text = error instanceof Error ? error.message : String(error);
 

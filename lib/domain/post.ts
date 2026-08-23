@@ -87,6 +87,9 @@ export type PostDetail = {
  * 목록 카드와 자세히 보기가 같이 쓴다. 그래서 본문이 담긴 파일이 아니라
  * 여기 둔다 — 카드만 그리는 화면이 본문 열여섯 편을 끌고 올 이유가 없다.
  */
+// [F1][함수] photoPath(postId): 예시 글의 사진 파일 경로를 규칙으로 만든다
+// 입력: postId → 처리: '/food/<id>.jpg' 로 조립 → 출력: 경로 문자열
+// [F1][반환] 경로 → community/page.tsx 가 카드에, post-article 이 큰 사진에 쓴다
 export function photoPath(postId: string): string {
   return `/food/${postId}.jpg`;
 }
@@ -116,11 +119,15 @@ export type CommentRead =
  * 앞뒤 빈칸을 떼고 나서 길이를 잰다. 공백만 잔뜩 넣은 것을 "500자 썼다" 로
  * 세면 빈 댓글이 그대로 올라간다.
  */
+// [F2][함수] checkComment(raw): 댓글을 받아 줄지 판정
+// 입력: raw(댓글 입력칸 글자) → 처리: trim 후 길이 검사 → 출력: CommentRead
 export function checkComment(raw: string): CommentRead {
   // 줄바꿈까지 포함해 앞뒤 여백을 걷어 낸다
+  // [F3][흐름] raw → trim() → text
   const text = raw.trim();
 
   // 아무것도 안 썼으면 짧다고 나무랄 일이 아니라 그냥 안 쓴 것이다
+  // [F4][분기] 길이 0 → 'empty' / 2 미만 → 'short' / 500 초과 → 'long' / 아니면 F5
   if (text.length === 0) return { ok: false, problem: "empty" };
 
   // 한 글자는 손이 미끄러진 쪽에 가깝다
@@ -130,6 +137,7 @@ export function checkComment(raw: string): CommentRead {
   if (text.length > MAX_COMMENT) return { ok: false, problem: "long" };
 
   // 다듬은 글자를 돌려준다. 화면은 원본이 아니라 이 값을 담아야 한다
+  // [F5][반환] text → sayOnPost(브라우저) · writeComment/reviseComment(표) 로 전달
   return { ok: true, text };
 }
 
@@ -140,9 +148,13 @@ export function checkComment(raw: string): CommentRead {
  * 탭과 달리 여기서는 기본값으로 돌리지 않는다 — 없는 글을 다른 글로 바꿔
  * 보여 주면 사람은 자기가 누른 글을 읽고 있다고 잘못 안다.
  */
+// [F6][함수] findPostDetail(all, id): 예시 글 열여섯 편 중 하나를 id 로 찾는다
+// 입력: all(postDetails) + id → 처리: 배열 훑기 → 출력: PostDetail 또는 null
 export function findPostDetail(
   all: readonly PostDetail[],
   id: string,
 ): PostDetail | null {
+  // [F7][반복] all 을 앞에서부터 훑다가 id 가 같은 글을 만나면 멈춘다
+  // [F7][반환] PostDetail 또는 null → app/posts/[id]/page.tsx 가 404 판정에 쓴다
   return all.find((p) => p.id === id) ?? null;
 }

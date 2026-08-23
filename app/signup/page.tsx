@@ -15,6 +15,9 @@ export const metadata: Metadata = {
 };
 
 /** /signup — 로그인 화면의 "회원가입" 을 누르면 오는 곳 */
+// [F1][함수] SignupPage(): 회원가입 화면 (/signup)
+// 입력: 없음 → 처리: 로그인과 같은 테두리 + SignupForm 배치 → 출력: 화면(JSX)
+// 폼이 눌리면 components/signup/signup-form.tsx → signUpAction(app/actions/auth.ts:F8)
 export default function SignupPage() {
   return (
     <>

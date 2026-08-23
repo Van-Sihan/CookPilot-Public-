@@ -83,19 +83,25 @@ const toneAsk: Record<VoiceTone, string> = {
  * 짧게 답하라고 거듭 이르는 까닭 — 불 앞에 선 사람은 긴 설명을 못 듣는다.
  * 모델은 그냥 두면 친절하게 길게 말한다.
  */
+// [F1][함수] cookingBrief(brief): 말동무에게 처음 한 번 건네는 안내문을 만든다
+// 입력: brief(recipe + gender + tone) → 처리: 규칙·재료·순서를 한 덩어리 글로 → 출력: 문자열
 export function cookingBrief(brief: CookBrief): string {
   const { recipe, tone } = brief;
 
   // 재료를 한 줄씩 늘어놓는다
+  // [F2][반복] recipe.ingredients 를 훑어 '- 이름 분량' 줄 목록으로 → ingredients
   const ingredients = recipe.ingredients
     .map((i) => `- ${i.name} ${i.amount}`)
     .join("\n");
 
   // 걸음마다 번호를 붙인다. 번호가 있어야 "3번째 걸음" 이라고 주고받을 수 있다
+  // [F3][반복] recipe.steps 를 훑어 '1. 문장 (n분)' 줄 목록으로 → steps
   const steps = recipe.steps
     .map((s, i) => `${i + 1}. ${s.text}${s.minutes ? ` (${s.minutes}분)` : ""}`)
     .join("\n");
 
+  // [F4][반환] 규칙 + 요리 이름 + ingredients + steps → 한 덩어리 글자
+  // [F4][반환] 이 글자 → gemini-live-gateway 의 setup.systemInstruction 으로 실려 나간다
   return [
     "너는 요리하는 사람 옆에 서 있는 요리 도우미다.",
     toneAsk[tone],
@@ -124,6 +130,22 @@ export function cookingBrief(brief: CookBrief): string {
   ].join("\n");
 }
 
+/** 걸음 하나를 소리로 낼 때 **사람이 실제로 듣게 되는 말** */
+// [F5][함수] spokenStep(text): 사람이 실제로 듣게 되는 말
+// 입력: text(걸음 글) → 처리: 그대로 → 출력: 읽힐 문장 (F6 과 browser-speech 가 나눠 쓴다)
+export function spokenStep(text: string): string {
+  /* 지금은 걸음 글 그대로다. 번호나 인사를 붙이지 않는다 —
+     화면에 크게 적힌 글과 귀에 들리는 말이 한 글자도 다르면 안 되기 때문이다.
+
+     그런데도 함수로 빼 둔 까닭이 있다. 소리를 내는 길이 셋이다(말동무 · 제미나이를
+     따로 부르기 · 브라우저 읽어 주기). 아래 readStepNote 는 **모델에게 주는 지시문**
+     이라 "[읽기] 1/10 걸음…" 같은 군더더기가 붙는데, 모델은 그중 따옴표 안만 읽는다.
+     브라우저 읽어 주기는 시키는 대로가 아니라 받은 글자를 통째로 읽으므로,
+     그 지시문을 그대로 넘기면 군더더기까지 소리 내어 읽는다.
+     그래서 "사람이 듣는 말" 을 여기 한 군데 두고 세 길이 나눠 쓴다. */
+  return text;
+}
+
 /**
  * 이 걸음을 소리 내어 읽어 달라고 시킨다.
  *
@@ -133,6 +155,9 @@ export function cookingBrief(brief: CookBrief): string {
  * 걸음 글을 그대로 실어 보내는 까닭 — 처음에 레시피를 통째로 알려 주긴 했지만,
  * 대화가 길어지면 모델이 몇 번째였는지 헷갈린다. 읽을 글을 같이 주면 틀릴 일이 없다.
  */
+// [F6][함수] readStepNote(index, total, text): 모델에게 주는 '이 걸음을 읽어라' 지시문
+// 입력: index + total + text → 처리: spokenStep(F5) 을 따옴표로 감싸고 규칙을 앞에 붙임
+// 출력: 지시문 문자열 → live-console·cook-shell 이 session.say()·previewVoice 로 보낸다
 export function readStepNote(index: number, total: number, text: string): string {
   /* 따옴표로 묶고 "그대로" 를 거듭 말한다.
      그냥 문장만 건네면 모델이 친절하게 군말을 붙인다 —
@@ -142,6 +167,7 @@ export function readStepNote(index: number, total: number, text: string): string
     `[읽기] ${index + 1}/${total} 걸음.`,
     `아래 따옴표 안의 문장을 토씨 하나 바꾸지 말고 그대로 소리 내어 읽어라.`,
     `앞에도 뒤에도 다른 말을 붙이지 마라. 인사도, 설명도, 권유도 하지 마라.`,
-    `"${text}"`,
+    // 사람이 듣게 되는 말. 브라우저 읽어 주기도 같은 함수를 거친다
+    `"${spokenStep(text)}"`,
   ].join("\n");
 }

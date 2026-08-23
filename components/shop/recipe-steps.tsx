@@ -16,10 +16,13 @@ type Props = {
   now?: number;
 };
 
+// [F1][함수] RecipeSteps({steps, now}): 순서 목록을 그린다(장보기·요리 화면이 함께 쓴다)
+// 입력: steps(Step[]) + now(지금 걸음, 없으면 표시 안 함) → 출력: 화면(JSX)
 export function RecipeSteps({ steps, now }: Props) {
   return (
     // 순서가 정해진 목록이라 번호가 붙는 ol 을 쓴다
     <ol className="rsteps">
+      {/* [F2][반복] steps 를 훑어 번호·문장·시간을 한 줄씩 그린다. i === now 면 표시를 붙인다 */}
       {steps.map((step, i) => (
         <li
           // 같은 문장이 두 번 나올 수 있어서 차례를 이름표로 쓴다. 순서가 안 바뀌니 괜찮다

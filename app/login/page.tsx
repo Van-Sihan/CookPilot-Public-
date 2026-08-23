@@ -15,6 +15,9 @@ export const metadata: Metadata = {
 };
 
 /** /login — 소개 페이지의 시작 단추들이 닿는 곳. 구역을 위에서 아래로 늘어놓기만 한다 */
+// [F1][함수] LoginPage(): 로그인 화면 (/login)
+// 입력: 없음 → 처리: 테두리(LoginTop) + 폼(LoginForm) 배치 → 출력: 화면(JSX)
+// 폼이 눌리면 components/login/login-form.tsx → signInAction(app/actions/auth.ts:F2)
 export default function LoginPage() {
   return (
     <>

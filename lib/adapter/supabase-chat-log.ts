@@ -26,13 +26,17 @@ type Row = {
 };
 
 /** 한 줄을 대화 한 마디로 받아 준다. 모양이 어긋나면 null */
+// [F1][함수] readTurn(row): 표에서 온 한 줄을 대화 한 마디로 받아 준다
+// 입력: row → 처리: role·content 검사 → 출력: ChatTurn 또는 null
 function readTurn(row: Row): ChatTurn | null {
   const role = row.role === "user" || row.role === "assistant" ? row.role : null;
   const content = typeof row.content === "string" ? row.content : "";
 
   // 역할이나 내용이 없으면 화면에 그릴 수 없다
+  // [F2][분기] role 이 모르는 값이거나 content 가 빔 → true: null / false: F3
   if (!role || content.length === 0) return null;
 
+  // [F3][반환] ChatTurn → read()(F7) 가 목록에 담는다
   return {
     role,
     content,
@@ -41,7 +45,10 @@ function readTurn(row: Row): ChatTurn | null {
   };
 }
 
+// [F4][함수] supabaseChatLog: 유스케이스의 ChatLog 약속을 수파베이스로 채운다
 export const supabaseChatLog: ChatLog = {
+  // [F5][함수] open(title): 새 대화를 연다
+  // 입력: title(첫 물음 앞머리) → 처리: ▷ chats insert → 출력: 새 대화 id 또는 null
   async open(title: string) {
     try {
       const supabase = await createSupabaseServerClient();
@@ -63,6 +70,8 @@ export const supabaseChatLog: ChatLog = {
     }
   },
 
+  // [F6][함수] add(chatId, turn): 대화에 한 마디를 남긴다
+  // 입력: chatId + turn → 처리: ▷ messages insert → 출력: 없음
   async add(chatId: string, turn: ChatTurn) {
     try {
       const supabase = await createSupabaseServerClient();
@@ -80,6 +89,8 @@ export const supabaseChatLog: ChatLog = {
     }
   },
 
+  // [F7][함수] read(chatId): 그 대화의 지난 말을 읽어 온다
+  // 입력: chatId → 처리: ▷ rpc('chat_messages') 호출 후 readTurn(F1) → 출력: ChatTurn[]
   async read(chatId: string) {
     try {
       const supabase = await createSupabaseServerClient();

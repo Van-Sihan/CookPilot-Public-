@@ -19,6 +19,9 @@ export const metadata: Metadata = {
  *
  * 이 파일은 서버에서 한 번 그려지고 끝난다. 움직이는 것은 전부 ShopShell 안에 있다.
  */
+// [F1][함수] ShopPage(): 재료를 담는 화면 (/shop) — 네 걸음 중 셋째
+// 입력: 없음 → 처리: StepTrack(3) + ShopShell 배치 → 출력: 화면(JSX)
+// ShopShell 이 findDraft(usecase/plan-recipe:F18) 로 담아 둔 레시피를 꺼내 그린다
 export default function ShopPage() {
   return (
     <>

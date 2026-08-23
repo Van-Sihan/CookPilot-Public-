@@ -14,6 +14,8 @@ import { Icon } from "@/components/icons";
 import { loginFooterLinks, loginFootNote, site } from "@/lib/site-content";
 
 /** 맨 윗줄. 왼쪽에 로고, 오른쪽에 계정 표시 */
+// [F1][함수] LoginTop(): 로그인·가입 화면의 맨 윗줄
+// 입력: 없음(site-content) → 출력: 화면(JSX)
 export function LoginTop() {
   return (
     <header className="login-top">
@@ -35,6 +37,8 @@ export function LoginTop() {
 }
 
 /** 맨 아랫줄. 로고와 저작권, 그리고 약관 링크 셋 */
+// [F2][함수] LoginFoot(): 로그인·가입 화면의 맨 아랫줄
+// 입력: 없음(site-content 의 loginFooterLinks) → 출력: 화면(JSX)
 export function LoginFoot() {
   return (
     <footer className="login-foot">

@@ -27,30 +27,38 @@ import type { SignUpAnswer, SignUpGateway } from "@/lib/usecase/sign-up";
 type SupabaseErrorish = { code?: string; status?: number } | null;
 
 /** 로그인·가입 양쪽에서 똑같이 "잠깐 쉬었다 오라" 는 뜻인 코드 */
+// [F1][함수] isRateLimited(error): 너무 자주 부른 것인지 판정
+// 입력: 수파베이스 오류 → 처리: 429 또는 over_request_rate_limit 확인 → 출력: boolean
 function isRateLimited(error: SupabaseErrorish): boolean {
   // 429 는 "너무 자주 두드린다" 는 뜻으로 정해진 번호다
   return error?.status === 429 || error?.code === "over_request_rate_limit";
 }
 
 /** 로그인을 맡는다 */
+// [F2][함수] supabaseAuthGateway: 유스케이스의 AuthGateway·SignUpGateway 약속을 채운다
 export const supabaseAuthGateway: AuthGateway & SignUpGateway = {
+  // [F3][함수] signIn(email, password): 로그인을 시도한다
+  // 입력: email + password → 처리: 수파베이스 인증 호출 → 오류 갈래 나누기 → 출력: GatewayAnswer
   async signIn(email: Email, password: Password): Promise<GatewayAnswer> {
     // 요청마다 새 손잡이를 만든다. 돌려쓰면 남의 로그인 표가 섞인다
     const supabase = await createSupabaseServerClient();
 
     /* 이메일과 비밀번호로 들어간다.
        성공하면 수파베이스가 쿠키에 로그인 표를 심어 준다 — 우리가 따로 할 일이 없다 */
+    // [F4][외부] email·password ▷ supabase.auth.signInWithPassword() → error
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     // 오류가 없으면 들어간 것이다
+    // [F5][분기] error 없음 → true: {ok:true} 반환 / false: F6
     if (!error) return { ok: true };
 
     /* 가입 확인 메일을 아직 안 누른 경우.
        수파베이스 대시보드에서 [Confirm Email] 을 켜 두면 여기로 온다.
        "비밀번호가 틀렸다" 로 뭉뚱그리면 사용자가 영영 못 들어오므로 따로 알린다 */
+    // [F6][분기] 메일 확인 전 → 'unconfirmed' / 너무 잦음 → 'unreachable' / 그 밖 → 'rejected'
     if (error.code === "email_not_confirmed") {
       return { ok: false, reason: "unconfirmed" };
     }
@@ -64,6 +72,8 @@ export const supabaseAuthGateway: AuthGateway & SignUpGateway = {
     return { ok: false, reason: "rejected" };
   },
 
+  // [F7][함수] signUp(email, password, name): 계정을 만든다
+  // 입력: email + password + name → 처리: 수파베이스 가입 호출 → 출력: 가입 결과
   async signUp(
     email: Email,
     password: Password,
@@ -72,6 +82,7 @@ export const supabaseAuthGateway: AuthGateway & SignUpGateway = {
     const supabase = await createSupabaseServerClient();
 
     // 계정을 새로 만든다
+    // [F8][외부] email·password·name ▷ supabase.auth.signUp() → data, error
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -87,6 +98,7 @@ export const supabaseAuthGateway: AuthGateway & SignUpGateway = {
       },
     });
 
+    // [F9][분기] error 있음 → 오류 종류에 맞는 까닭으로 바꿔 반환 / 없으면 F10
     if (error) {
       // 이미 그 주소로 만들어진 계정이 있다
       if (error.code === "user_already_exists") {
@@ -112,6 +124,7 @@ export const supabaseAuthGateway: AuthGateway & SignUpGateway = {
     /* [Confirm Email] 이 꺼져 있으면 가입과 동시에 로그인까지 되어 session 이 온다.
        켜져 있으면 session 이 null 이고, 메일함의 링크를 눌러야 들어올 수 있다.
        이 한 줄로 화면이 "바로 시작" 과 "메일함을 봐 주세요" 로 갈린다 */
+    // [F10][반환] {ok:true, needsConfirm} → signUp(usecase) → 화면이 메일 안내 여부를 가른다
     return { ok: true, needsConfirm: data.session === null };
   },
 };
@@ -122,6 +135,8 @@ export const supabaseAuthGateway: AuthGateway & SignUpGateway = {
  * 검사할 값도 없고 갈래도 없다. 이런 일까지 유스케이스로 감싸면
  * 아무 판단도 안 하는 파일만 하나 늘어난다.
  */
+// [F11][함수] supabaseSignOut(): 로그아웃한다
+// 입력: 없음 → 처리: ▷ supabase.auth.signOut() → 출력: 없음
 export async function supabaseSignOut(): Promise<void> {
   const supabase = await createSupabaseServerClient();
 
@@ -136,15 +151,19 @@ export async function supabaseSignOut(): Promise<void> {
  * getSession() 은 쿠키에 적힌 내용을 그냥 믿는데, 쿠키는 브라우저 쪽에 있는 값이라
  * 손댈 수 있다. getUser() 는 수파베이스에 한 번 물어봐서 진짜인지 확인한다.
  */
+// [F12][함수] currentUserEmail(): 지금 로그인한 사람의 이메일을 읽는다
+// 입력: 없음 → 처리: ▷ supabase.auth.getUser() → 출력: 이메일 또는 null
 export async function currentUserEmail(): Promise<string | null> {
   const supabase = await createSupabaseServerClient();
 
   // 물어보러 다녀온다
+  // [F13][외부] ▷ supabase.auth.getUser() → data, error
   const { data, error } = await supabase.auth.getUser();
 
   // 로그인 안 한 사람은 오류로 온다. 그건 잘못된 상황이 아니라 그냥 "없음" 이다
   if (error) return null;
 
   // 이메일이 없는 계정도 있을 수 있어서(전화 가입 등) 없으면 null 로 맞춰 준다
+  // [F14][반환] 이메일 → community·posts·write·account 페이지가 로그인 여부 판정에 쓴다
   return data.user?.email ?? null;
 }

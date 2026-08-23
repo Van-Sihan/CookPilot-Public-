@@ -13,6 +13,10 @@
  * 지어낸 이름을 넣느니 자리를 비워 두는 편이 낫고, 아예 안 적는 것은 안 된다.
  */
 
+// [F1][데이터] 예시 글 열여섯 편의 속 — 본문·레시피·사진 출처·미리 달린 댓글
+// 실행 흐름 없음. 읽는 곳: app/posts/[id]/page.tsx (findPostDetail 로 하나를 고른다)
+// 사진마다 찍은 사람과 허락(CC)이 함께 적혀 있다. 화면이 그걸 빠뜨릴 수 없게 타입이 막는다
+
 import type { PhotoCredit, PostDetail } from "@/lib/domain/post";
 
 /**

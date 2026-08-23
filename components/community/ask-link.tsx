@@ -11,6 +11,8 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { askCopy } from "@/lib/ask-content";
 
+// [F1][함수] AskLink(): 홈 왼쪽에서 챗봇 화면으로 넘어가는 자리
+// 입력: 없음(lib/ask-content) → 출력: /ask 로 가는 링크(JSX)
 export function AskLink() {
   return (
     <Link className="ask-door" href="/ask">

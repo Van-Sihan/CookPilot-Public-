@@ -6,6 +6,10 @@
  * 그게 다 딸려 간다.
  */
 
+// [F1][데이터] AI 챗봇 화면(/ask)에 적히는 말과 안내 문구
+// 실행 흐름 없음. 읽는 곳: components/ask/ask-shell.tsx · components/community/ask-link.tsx
+// 까닭 낱말(no-hits·key·too-many…)을 사람이 읽을 문장으로 바꾸는 표가 여기 있다
+
 /** 화면 곳곳에 붙는 말들 */
 export const askCopy = {
   // 가장 큰 제목

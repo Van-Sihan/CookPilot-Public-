@@ -9,6 +9,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { TagLink } from "@/components/community/tag-link";
 import { photoPath, type PostDetail } from "@/lib/domain/post";
 import { postCopy } from "@/lib/post-copy";
 import type { CommunityPost } from "@/lib/site-content";
@@ -20,6 +21,9 @@ type Props = {
   detail: PostDetail;
 };
 
+// [F1][함수] PostArticle({card, detail}): 예시 글 한 편의 본문을 그린다
+// 입력: card(목록에서 쓰던 값) + detail(열어야 보이는 속) → 출력: 화면(JSX)
+// 사진 아래에 찍은 사람과 허락(CC)을 반드시 함께 적는다
 export function PostArticle({ card, detail }: Props) {
   return (
     <article className="pd">
@@ -66,7 +70,7 @@ export function PostArticle({ card, detail }: Props) {
 
       {/* 딱지와 걸리는 시간. 목록 카드에 있던 것을 그대로 가져온다 */}
       <div className="pd-meta">
-        <span className="cm-badge">{card.badge}</span>
+        <TagLink tag={card.badge} />
         {card.minutes && <span className="cm-min">{card.minutes}분</span>}
         <span className="pd-date">{detail.published}</span>
       </div>
@@ -96,6 +100,7 @@ export function PostArticle({ card, detail }: Props) {
       <p className="pd-intro">{detail.intro}</p>
 
       {/* 소제목이 붙은 본문. 문단은 글자 그대로 나가므로 HTML 을 섞지 않는다 */}
+      {/* [F2][반복] sections 를 훑어 소제목과 문단을 그린다 */}
       {detail.sections.map((s) => (
         <section className="pd-sec" key={s.heading}>
           <h2 className="pd-h2">{s.heading}</h2>
@@ -110,6 +115,7 @@ export function PostArticle({ card, detail }: Props) {
 
       {/* 꼬리표. 아직 누를 곳이 없어서 링크가 아니라 표시로만 둔다 */}
       <ul className="pd-tags">
+        {/* [F3][반복] tags 를 훑어 꼬리표를 그린다 */}
         {detail.tags.map((t) => (
           <li className="pd-tag" key={t}>
             <Icon name="tag" size={13} />

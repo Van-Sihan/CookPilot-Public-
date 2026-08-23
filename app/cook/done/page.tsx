@@ -18,6 +18,10 @@ export const metadata: Metadata = {
  * 걸음 표시는 여전히 네 번째(요리)에 둔다. 다섯 번째 걸음을 새로 만들면
  * 앞 화면들의 "네 걸음" 이 모두 거짓말이 된다.
  */
+// [F1][함수] DonePage(): 요리 완성 화면 (/cook/done)
+// 입력: 없음 → 처리: DoneShell 배치 → 출력: 화면(JSX)
+// DoneShell 이 표지 그리기(drawRecipeCard) · 서재에 꽂기(shelveRecipe:F7) ·
+// 커뮤니티 글쓰기(/write?from=cook) 세 갈래를 쥔다
 export default function DonePage() {
   return (
     <>

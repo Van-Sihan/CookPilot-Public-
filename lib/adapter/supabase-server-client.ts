@@ -20,6 +20,8 @@ import { cookies } from "next/headers";
  * 없는 채로 넘어가면 "fetch failed" 같은 엉뚱한 말로 실패해서
  * 무엇이 빠졌는지 알아내는 데 한참 걸린다.
  */
+// [F1][함수] readEnv(): 환경 변수에서 수파베이스 주소와 키를 읽는다
+// 입력: process.env → 처리: 없으면 바로 오류 → 출력: {url, key}
 function readEnv(): { url: string; key: string } {
   // 프로젝트마다 다른 주소. [Connect] 창에서 복사한 그 값이다
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -31,6 +33,7 @@ function readEnv(): { url: string; key: string } {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // 둘 중 하나라도 비었으면 무엇이 없는지 이름을 대며 멈춘다
+  // [F2][에러] 주소나 키가 없음 → 여기서 던진다(없는 채로 부르면 'fetch failed' 만 나온다)
   if (!url || !key) {
     throw new Error(
       ".env.local 에 NEXT_PUBLIC_SUPABASE_URL 과 " +
@@ -48,12 +51,16 @@ function readEnv(): { url: string; key: string } {
  * 만들어 두고 돌려쓰지 않고 부를 때마다 새로 만드는 것이 중요하다.
  * 하나를 여러 요청이 나눠 쓰면 A가 로그인한 표를 B가 들고 다니게 된다.
  */
+// [F3][함수] createSupabaseServerClient(): 서버에서 쓰는 수파베이스 손잡이를 만든다
+// 입력: 없음 → 처리: readEnv(F1) + 쿠키 저장소 연결 → 출력: SupabaseClient (비동기)
 export async function createSupabaseServerClient() {
   const { url, key } = readEnv();
 
   // Next.js 16 에서 cookies() 는 기다려야 하는 함수다. 예전처럼 그냥 부르면 안 된다
+  // [F4][외부] ▷ next/headers cookies() 로 요청의 쿠키를 읽어 온다 → cookieStore
   const cookieStore = await cookies();
 
+  // [F5][반환] 손잡이 → 모든 supabase-* 어댑터가 이 함수 하나로 손잡이를 얻는다
   return createServerClient(url, key, {
     cookies: {
       // 수파베이스가 "지금 쿠키가 뭐뭐 있냐" 고 물을 때 답해 준다

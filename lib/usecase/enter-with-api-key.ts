@@ -33,22 +33,29 @@ export type EnterResult =
  * 사람이 적어 넣은 글자를 검사하고, 통과하면 담아 두는 일까지 마친다.
  * 화면은 이 함수 하나만 부르면 되고, 검사 규칙도 담는 방법도 몰라도 된다.
  */
+// [F1][함수] enterWithApiKey(raw, store): 적어 넣은 키를 검사하고 담아 둔다
+// 입력: raw(api-key-form 입력칸) + store(ApiKeyStore) → 처리: 도메인 검사 → 저장 → 출력: EnterResult
 export function enterWithApiKey(raw: string, store: ApiKeyStore): EnterResult {
   // 모양 검사는 통째로 도메인에 맡긴다. 여기서 또 따지면 규칙이 두 군데로 갈라져 헷갈린다
+  // [F2][호출] raw → checkApiKey(domain/api-key) → checked
   const checked = checkApiKey(raw);
 
   // 검사에서 걸렸으면 담아 두려는 시도조차 하지 않고 까닭만 그대로 올려 보낸다
+  // [F3][분기] checked.ok → false: 까닭을 그대로 반환 / true: F4
   if (!checked.ok) return { ok: false, reason: checked.problem };
 
   try {
     // 시크릿 창이거나 저장을 막아 둔 브라우저면 바로 이 줄에서 오류가 난다
+    // [F4][외부] checked.key → store.save() ▷ 브라우저 localStorage 에 기록
     store.save(checked.key);
   } catch {
     // 담지 못했을 뿐 키 자체는 멀쩡하다. 그러니 모양이 틀린 것과는 다른 까닭으로 알린다
+    // [F5][에러] 저장이 막힌 브라우저 → 'storage' 반환 → 화면이 시크릿 창 안내를 띄운다
     return { ok: false, reason: "storage" };
   }
 
   // 검사도 저장도 끝났다. 화면은 이제 다음 모습으로 넘어가도 된다
+  // [F6][반환] {ok:true, key} → api-key-form 이 다음 화면으로 넘어간다
   return { ok: true, key: checked.key };
 }
 
@@ -56,6 +63,9 @@ export function enterWithApiKey(raw: string, store: ApiKeyStore): EnterResult {
  * 예전에 넣어 둔 키가 있는지 본다.
  * 다시 찾아온 사람에게 입력칸을 처음부터 또 보여 주지 않으려고 쓴다.
  */
+// [F7][함수] findSavedKey(store): 담아 둔 키를 꺼낸다
+// 입력: store → 처리: store.load() ▷ localStorage 읽기 → 출력: ApiKey 또는 null
+// [F7][반환] 키 → pick-cards · live-console · cook-shell · home-me 가 이 값으로 다음 길을 정한다
 export function findSavedKey(store: ApiKeyStore): ApiKey | null {
   try {
     // 꺼내 오는 방법은 어댑터가 안다. 여기서는 오류만 감싸 준다
@@ -67,6 +77,8 @@ export function findSavedKey(store: ApiKeyStore): ApiKey | null {
 }
 
 /** 넣어 둔 키를 버린다. 다른 키로 갈아 끼우고 싶을 때 쓴다 */
+// [F8][함수] forgetSavedKey(store): 담아 둔 키를 버린다
+// 입력: store → 처리: store.clear() ▷ localStorage 삭제 → 출력: 없음 (pick-rail 의 '전부 지우기')
 export function forgetSavedKey(store: ApiKeyStore): void {
   try {
     // 버리는 방법도 어댑터가 안다
@@ -80,6 +92,9 @@ export function forgetSavedKey(store: ApiKeyStore): void {
  * 넣어 둔 키가 바뀌는지 지켜본다. 돌려주는 함수를 부르면 그만 본다.
  * 화면은 이 함수만 알면 되고 저장하는 곳을 직접 건드릴 일이 없다.
  */
+// [F9][함수] watchSavedKey(store, onChange): 키가 바뀌는지 지켜본다
+// 입력: store + onChange → 처리: store.subscribe() → 출력: '그만 보기' 함수
+// [F9][반환] 해제 함수 → home-me 의 useSyncExternalStore 가 화면을 떠날 때 부른다
 export function watchSavedKey(store: ApiKeyStore, onChange: () => void) {
   // "그만 보기" 함수를 그대로 올려 보낸다. 화면이 사라질 때 그걸 불러 정리한다
   return store.subscribe(onChange);

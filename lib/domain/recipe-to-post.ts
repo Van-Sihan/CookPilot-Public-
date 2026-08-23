@@ -16,9 +16,13 @@ import type { Recipe } from "@/lib/domain/recipe";
  *
  * 시간이 하나도 안 적힌 레시피면 null 이다 — 0분이라고 적으면 거짓말이 된다.
  */
+// [F1][함수] totalMinutes(recipe): 걸음마다 적힌 시간을 다 더한다
+// 입력: recipe → 처리: steps.minutes 합계 → 출력: 분(숫자) 또는 null (F7 이 부른다)
 function totalMinutes(recipe: Recipe): number | null {
+  // [F2][반복] recipe.steps 전체를 훑어 minutes 를 sum 에 누적
   const sum = recipe.steps.reduce((n, s) => n + (s.minutes ?? 0), 0);
 
+  // [F3][반환] sum > 0 이면 sum, 아니면 null → F7 의 minutes 칸으로
   return sum > 0 ? sum : null;
 }
 
@@ -29,6 +33,8 @@ function totalMinutes(recipe: Recipe): number | null {
  * 모든 글에 같은 딱지가 붙어 목록에서 갈래가 안 보인다. 그래서 요리 이름을
  * 보고 그럴듯한 것을 미리 골라 둔다 — 마음에 안 들면 고치면 된다.
  */
+// [F4][함수] guessBadge(title): 요리 이름을 보고 카테고리(태그)를 짚는다
+// 입력: title → 처리: rules 를 위에서부터 정규식 대조 → 출력: 태그 문자열 (F7 이 부른다)
 function guessBadge(title: string): string {
   const rules: readonly [RegExp, string][] = [
     [/파스타|스파게티|리조또|피자/, "파스타"],
@@ -39,11 +45,14 @@ function guessBadge(title: string): string {
     [/스테이크|삼겹|갈비|불고기|구이/, "메인"],
   ];
 
+  // [F5][반복] rules 를 위에서부터 훑다가 처음 걸리는 것에서 멈춘다
+  // [F5][분기] pattern.test(title) → true: 그 badge 반환 / false: 다음 규칙
   for (const [pattern, badge] of rules) {
     if (pattern.test(title)) return badge;
   }
 
   // 못 짚으면 가장 넓은 갈래로 둔다
+  // [F6][반환] 하나도 안 걸리면 '한 그릇' → F7 의 badge 칸으로
   return "한 그릇";
 }
 
@@ -53,6 +62,8 @@ function guessBadge(title: string): string {
  * 본문에 이걸 미리 넣어 두는 까닭 — 글을 쓰는 사람은 "어떻게 만들었나" 를
  * 다시 적기 싫어한다. 이미 적혀 있으면 그 아래에 느낌만 보태게 된다.
  */
+// [F7-pre][함수] bodyFrom(recipe): 재료·순서를 사람이 읽을 본문으로 편다
+// 입력: recipe → 처리: ingredients·steps 를 줄 목록으로 → 출력: 본문 문자열 (F7 이 부른다)
 function bodyFrom(recipe: Recipe): string {
   const ingredients = recipe.ingredients
     .map((i) => `- ${i.name} ${i.amount}`)
@@ -76,6 +87,10 @@ function bodyFrom(recipe: Recipe): string {
 }
 
 /** 만든 요리를 글 초안으로 옮긴다 */
+// [F7][함수] draftFromRecipe(recipe, tone): 만든 요리를 글 초안으로 옮긴다
+// 입력: recipe + tone → 처리: bodyFrom·guessBadge·totalMinutes 호출 → 출력: PostDraft
+// [F7][호출] recipe → bodyFrom(F7-pre) / guessBadge(F4) / totalMinutes(F1)
+// [F7][반환] PostDraft → write-form.tsx 가 각 입력칸에 채운다
 export function draftFromRecipe(recipe: Recipe, tone: PostTone): PostDraft {
   return {
     title: recipe.title,

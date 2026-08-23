@@ -17,7 +17,10 @@
 import type { AuthGateway } from "@/lib/usecase/sign-in";
 
 /** 서버가 있는 척하지 않는다. 늘 "아직 없다" 고 답한다 */
+// [F1][함수] pendingAuthGateway: 아직 서버가 없을 때 자리를 채우는 가짜 게이트웨이
+// 입력: 없음 → 처리: 늘 'unavailable' 로 답함 → 출력: GatewayAnswer
 export const pendingAuthGateway: AuthGateway = {
+  // [F2][반환] 늘 {ok:false, reason:'unavailable'} → 화면이 '아직 준비 중' 으로 알린다
   async signIn() {
     // 값을 받기는 하지만 쓰지 않는다. 보낼 곳이 없기 때문이다.
     // 특히 비밀번호는 어디에도 남기지 않는다 — 담아 둘 이유가 없다

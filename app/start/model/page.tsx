@@ -15,6 +15,9 @@ export const metadata: Metadata = {
 };
 
 /** /start/model — 키를 넣고 나서 오는 곳. 고를 것을 다 고르면 /pick 으로 간다 */
+// [F1][함수] ModelPage(): 목소리·속도를 고르는 화면 (/start/model) — 네 걸음 중 둘째
+// 입력: 없음 → 처리: StepTrack(2) + SetupPicker 배치 → 출력: 화면(JSX)
+// 고른 값은 components/setup/setup-picker.tsx → keepCookSetup(usecase:F1) → localStorage
 export default function ModelPage() {
   return (
     <>

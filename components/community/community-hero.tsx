@@ -14,6 +14,9 @@ type Props = {
   query: string;
 };
 
+// [F1][함수] CommunityHero({query}): 커뮤니티 맨 위의 제목과 검색칸
+// 입력: query(주소의 ?q= 를 서버가 정리해 넘긴 값) → 처리: 검색칸에 미리 채움
+// 출력: 화면(JSX). 폼을 보내면 /community?q=… 로 다시 들어온다(GET)
 export function CommunityHero({ query }: Props) {
   return (
     <div className="cm-hero">

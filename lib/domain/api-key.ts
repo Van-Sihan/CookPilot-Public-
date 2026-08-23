@@ -30,14 +30,19 @@ export type ApiKeyCheck =
  * 사람이 적어 넣은 글자를 키로 받아 줄지 살펴본다.
  * 빈칸만 아니면 통과다 — 맞는 키인지 아닌지는 실제로 써 봐야 알 수 있으니까.
  */
+// [F1][함수] checkApiKey(raw): 사람이 적은 글자를 API 키로 받아 줄지 판정
+// 입력: raw(화면 입력칸 글자) → 처리: 앞뒤 공백 제거 후 빈값 검사 → 출력: ApiKeyCheck
 export function checkApiKey(raw: string): ApiKeyCheck {
   // 복사해서 붙이면 앞뒤에 빈칸이나 줄바꿈이 딸려 오는 일이 많다. 그래서 먼저 떼어 낸다
+  // [F2][흐름] raw → trim() → key
   const key = raw.trim();
 
   // 아무것도 안 적고 눌렀을 때만 막는다. 빈칸을 넣어 봤자 쓸 데가 없기 때문이다
+  // [F3][분기] key.length === 0 → true: {ok:false, problem:'empty'} 반환 / false: F4
   if (key.length === 0) return { ok: false, problem: "empty" };
 
   // 여기까지 왔으면 검사를 통과한 것이니 이제야 도장을 찍어 돌려준다
+  // [F4][반환] key → {ok:true, key} → 호출한 유스케이스(enter-with-api-key)로 전달
   return { ok: true, key: key as ApiKey };
 }
 
@@ -45,16 +50,21 @@ export function checkApiKey(raw: string): ApiKeyCheck {
  * 키를 화면에 보여 줄 때 쓰는 가림막. 앞뒤만 남기고 가운데는 점으로 덮는다.
  * 옆 사람이 넘겨다보거나 화면을 같이 볼 때 키가 통째로 드러나지 않게 하려는 것이다.
  */
+// [F5][함수] maskApiKey(key): 화면에 보여 줄 가림막 글자를 만든다
+// 입력: key(도장 찍힌 키) → 처리: 앞 6·뒤 4만 남기고 가운데를 점으로 → 출력: 가려진 문자열
 export function maskApiKey(key: ApiKey): string {
   // 너무 짧은 키는 앞뒤를 남기면 거의 다 보여 버린다. 그래서 통째로 덮는다
+  // [F6][분기] key.length <= 12 → true: 전체를 점으로 덮어 반환 / false: F7
   if (key.length <= 12) return "·".repeat(key.length);
 
   // "아, 그 키구나" 하고 알아볼 만큼만 앞을 남긴다
+  // [F7][흐름] key → slice(0,6) → head / key → slice(-4) → tail
   const head = key.slice(0, 6);
 
   // 키를 여러 개 쓰는 사람은 끝 네 글자로 어느 게 어느 건지 가린다
   const tail = key.slice(-4);
 
   // 가운데는 늘 점 여덟 개로 덮는다. 그래야 키가 몇 글자인지도 안 들킨다
+  // [F8][반환] head + 점 8개 + tail → 호출한 화면(home-me 등)으로 전달
   return `${head}${"·".repeat(8)}${tail}`;
 }

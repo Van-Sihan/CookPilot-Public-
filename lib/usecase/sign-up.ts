@@ -78,6 +78,9 @@ export type SignUpResult =
  * 적어 넣은 값을 검사하고, 통과하면 계정을 만들어 달라고 부탁한다.
  * 화면은 이 함수 하나만 부르면 되고, 검사 규칙도 가입 방법도 몰라도 된다.
  */
+// [F1][함수] signUp(rawName, rawEmail, rawPassword, rawConfirm, gateway): 계정을 만든다
+// 입력: 닉네임·이메일·비밀번호·확인(가입 폼) + gateway → 처리: 도메인 검사 → 서버 가입
+// 출력: SignUpResult (비동기)
 export async function signUp(
   rawName: string,
   rawEmail: string,
@@ -87,20 +90,25 @@ export async function signUp(
 ): Promise<SignUpResult> {
   /* 닉네임을 먼저 본다. 폼에서 맨 위에 있는 칸이라, 여러 군데가 틀렸을 때
      위에서부터 알려 주는 편이 고치기 쉽다 */
+  // [F2][호출] rawName → checkDisplayName(domain/display-name) → named
   const named = checkDisplayName(rawName);
 
   // 걸렸으면 나머지는 볼 것도 없다
+  // [F3][분기] named.ok → false: 까닭 반환 / true: F4
   if (!named.ok) return { ok: false, reason: named.problem };
 
   // 모양 검사는 통째로 도메인에 맡긴다. 여기서 또 따지면 규칙이 두 군데로 갈라져 헷갈린다
+  // [F4][호출] 이메일·비밀번호·확인 → checkNewCredentials(domain/credentials) → checked
   const checked = checkNewCredentials(rawEmail, rawPassword, rawConfirm);
 
   // 검사에서 걸렸으면 서버에 물어보지도 않고 까닭만 그대로 올려 보낸다.
   // 특히 가입은 걸릴 일이 잦아서, 미리 걸러야 서버가 헛일을 덜 한다
+  // [F5][분기] checked.ok → false: 까닭 반환(서버에 안 다녀옴) / true: F6
   if (!checked.ok) return { ok: false, reason: checked.problem };
 
   try {
     // 여기서 실제로 계정이 만들어진다. 얼마나 걸릴지 모르니 기다린다
+    // [F6][외부] email·password·name → gateway.signUp() ▷ 수파베이스 가입 → answer (await)
     const answer = await gateway.signUp(
       checked.email,
       checked.password,
@@ -108,10 +116,12 @@ export async function signUp(
     );
 
     // 안 됐다고 하면 그 까닭을 그대로 올려 보낸다
+    // [F7][분기] answer.ok → false: 서버가 준 까닭 반환 / true: F8
     if (!answer.ok) return { ok: false, reason: answer.reason };
 
     // 만들어졌다. 메일 확인이 필요한지까지 같이 올려 보낸다 —
     // 그 답에 따라 화면이 "바로 시작" 과 "메일함을 봐 주세요" 로 갈린다
+    // [F8][반환] {ok:true, email, needsConfirm} → app/actions/auth.ts 가 메일 확인 안내 여부를 가른다
     return {
       ok: true,
       email: checked.email,
@@ -119,6 +129,7 @@ export async function signUp(
     };
   } catch {
     // 인터넷이 끊기면 여기로 온다. 값이 틀린 것과는 다른 실패라 따로 알린다
+    // [F9][에러] 다녀오지 못함 → 'unreachable' 반환
     return { ok: false, reason: "unreachable" };
   }
 }

@@ -23,12 +23,15 @@ let cachedRaw: string | null = null;
 let cachedBooks: readonly ShelfBook[] = EMPTY_SHELF;
 
 /** 명단에 있는 모두에게 한 번씩 알린다 */
+// [F1][함수] notify(): 명단에 있는 모두에게 '바뀌었다' 고 알린다
 function notify() {
   // 알리는 도중에 누가 명단에서 빠질 수도 있지만 Set 은 그 정도는 견딘다
   listeners.forEach((fn) => fn());
 }
 
 /** 담아 둔 글자를 책 목록으로 푼다. 손상됐으면 빈 서재로 본다 */
+// [F2][함수] parse(raw): 담겨 있던 글자를 책 목록으로 푼다
+// 입력: raw → 처리: JSON.parse 후 배열인지 확인 → 출력: ShelfBook[]
 function parse(raw: string): readonly ShelfBook[] {
   try {
     // 사람이 개발자 도구로 아무 글자나 넣어 뒀을 수도 있다
@@ -42,7 +45,10 @@ function parse(raw: string): readonly ShelfBook[] {
   }
 }
 
+// [F3][함수] browserRecipeShelfStore: RecipeShelfStore 약속을 localStorage 로 채운다
 export const browserRecipeShelfStore: RecipeShelfStore = {
+  // [F4][함수] load(): 꽂혀 있는 책 전부를 꺼낸다
+  // 입력: 없음 → 처리: localStorage 읽기 → parse(F2) → 출력: ShelfBook[]
   load() {
     // 서버에서 화면을 그리는 동안에는 window 가 아예 없다
     if (typeof window === "undefined") return EMPTY_SHELF;
@@ -62,6 +68,8 @@ export const browserRecipeShelfStore: RecipeShelfStore = {
     return cachedBooks;
   },
 
+  // [F5][함수] replace(books): 서재를 통째로 갈아 끼운다
+  // 입력: books → 처리: JSON 으로 localStorage 기록 후 notify → 출력: 없음
   replace(books: readonly ShelfBook[]) {
     // 저장을 막아 둔 브라우저에서는 여기서 오류가 나고, 그건 유스케이스가 받아 준다
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
@@ -70,6 +78,7 @@ export const browserRecipeShelfStore: RecipeShelfStore = {
     notify();
   },
 
+  // [F6][함수] clear(): 서재를 비운다
   clear() {
     // 빈 배열로 덮지 않고 아예 지운다. 나중에 "한 번도 안 썼다" 와 구분할 여지를 남겨 둔다
     window.localStorage.removeItem(STORAGE_KEY);
@@ -78,6 +87,7 @@ export const browserRecipeShelfStore: RecipeShelfStore = {
     notify();
   },
 
+  // [F7][함수] subscribe(onChange): 바뀌면 알려 달라고 명단에 올린다 → 출력: 해제 함수
   subscribe(onChange: () => void) {
     // 같은 탭에서 생긴 변화를 받을 수 있게 명단에 올린다
     listeners.add(onChange);

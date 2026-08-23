@@ -44,6 +44,8 @@ const TONE_BARS = 26;
  * `Math.random()` 을 쓰지 않는다. 서버가 그린 화면과 브라우저가 그린 첫 화면의
  * 막대 높이가 다르면 React 가 "내용이 어긋난다" 고 화를 낸다.
  */
+// [F1][함수] toneBarHeight(i): 말투 카드의 소리 막대 높이
+// 입력: i(막대 차례) → 처리: 가운데가 높은 언덕 + 흔들림 → 출력: 0~1 숫자
 function toneBarHeight(i: number): number {
   const wobble = Math.abs(Math.sin(i * 0.9));
   const hill = 0.45 + 0.55 * Math.cos((i / (TONE_BARS - 1) - 0.5) * Math.PI);
@@ -53,11 +55,14 @@ function toneBarHeight(i: number): number {
 /** 막대 높이를 미리 다 구해 둔다. 카드 세 장이 같은 물결을 쓴다 */
 const TONE_WAVE = Array.from({ length: TONE_BARS }, (_, i) => toneBarHeight(i));
 
+// [F2][함수] SetupPicker(): 목소리·말투·답변 속도를 고르는 화면
+// 입력: 없음 → 처리: 미리 듣기 + 고른 값 담아 두기 → 출력: 화면(JSX)
 export function SetupPicker() {
   /* 다 고르고 나면 음성 화면으로 데려가야 해서 길잡이를 받아 둔다 */
   const router = useRouter();
 
   /* 지금 고른 성별 */
+  // [F3][흐름] 고르는 값 셋 → gender · tone · speed / 지금 재생 중 → playing / 잔소리 → warn
   const [gender, setGender] = useState<VoiceGender>(DEFAULT_GENDER);
 
   /* 지금 고른 말투 */
@@ -73,10 +78,13 @@ export function SetupPicker() {
   const [warn, setWarn] = useState<string | null>(null);
 
   /* 미리 듣기를 도중에 끊는 손잡이와, 소리를 낼 스피커 */
+  // [F4][흐름] 미리 듣기를 끊는 함수 → stopRef / 소리를 트는 자리 → speakerRef
   const stopRef = useRef<(() => void) | null>(null);
   const speakerRef = useRef<Speaker | null>(null);
 
   /** 미리 듣던 것을 끊고 치운다 */
+  // [F5][함수] stopPreview(): 듣던 것을 끊는다
+  // 입력: 없음 → 처리: 웹소켓 끊기 + 스피커 닫기 → 출력: 없음
   const stopPreview = useCallback(() => {
     stopRef.current?.();
     stopRef.current = null;
@@ -89,18 +97,23 @@ export function SetupPicker() {
   }, []);
 
   /* 화면을 떠날 때 소리가 남지 않게 한다 */
+  // [F6][흐름] 화면을 떠날 때 듣던 소리를 거둔다
   useEffect(() => stopPreview, [stopPreview]);
 
   /* 고른 속도에 붙는 설명. 아래 문단이 이 값을 보고 바뀐다 */
   const speedNote = answerSpeedCards.find((s) => s.id === speed)?.note;
 
   /** 이 말투를 실제 목소리로 들려준다 */
+  // [F7][함수] listen(next): 그 말투를 실제 목소리로 들려준다
+  // 입력: next(고른 말투) → 처리: 앞엣것 끊기 → 키 확인 → previewVoice → 출력: 없음
   function listen(next: VoiceTone) {
     /* 앞서 듣던 것을 먼저 끊는다. 안 끊으면 두 목소리가 겹쳐서 들린다 */
     stopPreview();
 
     setWarn(null);
 
+    // [F8][호출] findSavedKey(usecase:F7) → key
+    // [F8][분기] 키 없음 → 안내를 띄우고 멈춤
     const key = findSavedKey(browserApiKeyStore);
     if (!key) {
       setWarn("API 키가 없어 미리 들을 수 없습니다. 시작 화면에서 키를 먼저 넣어 주세요.");
@@ -108,8 +121,10 @@ export function SetupPicker() {
     }
 
     // 이 말투의 예문을 읽힌다
+    // [F9][흐름] 그 말투의 예문 → line
     const line = voiceToneCards.find((c) => c.id === next)?.line ?? "";
 
+    // [F10][외부] ▷ openSpeaker(browser-audio:F19) → speaker → unblock()
     const speaker = openSpeaker();
     speakerRef.current = speaker;
 
@@ -119,6 +134,9 @@ export function SetupPicker() {
 
     setPlaying(next);
 
+    // [F11][외부] key + gender + next + line ▷ previewVoice(gemini-live-gateway:F19)
+    // → 소리 조각이 올 때마다 speaker.push(), 끝나면 단추를 되돌린다
+    // [F11][흐름] 돌려받은 '끊는 함수' → stopRef (다음 것을 누를 때 앞엣것을 끊는다)
     stopRef.current = previewVoice(
       key,
       gender,
@@ -135,6 +153,8 @@ export function SetupPicker() {
     );
   }
 
+  // [F12][함수] onSubmit(e): '이 목소리로 시작' 을 눌렀을 때
+  // 입력: gender·tone·speed → 처리: keepCookSetup 후 /pick 으로 → 출력: 없음
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     /* 가만두면 브라우저가 페이지를 통째로 새로 고쳐 버린다 */
     e.preventDefault();
@@ -143,14 +163,17 @@ export function SetupPicker() {
     stopPreview();
 
     /* 담아 두는 일은 통째로 유스케이스에 맡긴다 */
+    // [F13][호출] {gender, tone, speed} → keepCookSetup(usecase:F1) ▷ localStorage → kept
     const kept = keepCookSetup({ gender, tone, speed }, browserCookSetupStore);
 
     /* 못 담았어도 요리는 할 수 있다. 다음에 다시 골라야 한다는 것만 알려 준다 */
+    // [F14][분기] 못 담음 → true: '이번 방문에만 남는다' 고 알린다 / false: 그대로
     if (!kept) {
       setWarn("이 브라우저가 저장을 막고 있어, 고르신 설정이 이번 방문에만 남습니다.");
     }
 
     /* 담았든 못 담았든 다음 화면으로 넘어간다 */
+    // [F15][반환] 담았든 못 담았든 ▷ router.push('/pick')
     router.push("/pick");
   }
 

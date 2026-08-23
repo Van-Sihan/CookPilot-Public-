@@ -58,19 +58,26 @@ export type CookSetupStore = {
  * 시크릿 창처럼 저장이 막힌 곳에서도 요리는 할 수 있어야 하므로,
  * 담지 못했다고 해서 다음 화면으로 못 가게 막지는 않는다. 됐는지 여부만 알려 준다.
  */
+// [F1][함수] keepCookSetup(setup, store): 고른 목소리·속도를 담아 둔다
+// 입력: setup(gender·tone·speed) + store → 처리: store.save() ▷ localStorage → 출력: 담겼는지 boolean
 export function keepCookSetup(setup: CookSetup, store: CookSetupStore): boolean {
   try {
     // 담는 방법은 어댑터가 안다
+    // [F2][외부] setup → store.save() ▷ localStorage 기록
     store.save(setup);
     // 다음에 왔을 때도 이 값이 그대로 나온다
     return true;
   } catch {
     // 이번 방문에만 쓰고 사라진다는 뜻이다. 화면은 이 값을 보고 안내를 띄울지 정한다
+    // [F3][에러] 저장이 막힘 → false 반환 → setup-picker 가 '이번 방문에만 남는다' 고 알린다
     return false;
   }
 }
 
 /** 담아 둔 값을 꺼낸다. 없거나 못 읽으면 늘 같은 기본값 하나를 돌려준다 */
+// [F4][함수] findCookSetup(store): 담아 둔 목소리·속도를 꺼낸다
+// 입력: store → 처리: store.load() ▷ localStorage 읽기, 없으면 DEFAULT_SETUP → 출력: CookSetup
+// [F4][반환] setup → cook-shell · pick-shell 이 LiveConsole 에 gender·tone 으로 넘긴다
 export function findCookSetup(store: CookSetupStore): CookSetup {
   try {
     // 꺼내 오는 방법은 어댑터가 안다. 없으면 기본값으로 메운다
@@ -82,6 +89,8 @@ export function findCookSetup(store: CookSetupStore): CookSetup {
 }
 
 /** 담아 둔 값을 버린다. "전부 지우기" 가 이걸 부른다 */
+// [F5][함수] forgetCookSetup(store): 담아 둔 값을 버린다
+// 입력: store → 처리: store.clear() ▷ localStorage 삭제 → 출력: 없음
 export function forgetCookSetup(store: CookSetupStore): void {
   try {
     // 버리는 방법도 어댑터가 안다
@@ -92,6 +101,8 @@ export function forgetCookSetup(store: CookSetupStore): void {
 }
 
 /** 담아 둔 값이 바뀌는지 지켜본다. 돌려주는 함수를 부르면 그만 본다 */
+// [F6][함수] watchCookSetup(store, onChange): 값이 바뀌는지 지켜본다
+// 입력: store + onChange → 처리: store.subscribe() → 출력: '그만 보기' 함수
 export function watchCookSetup(store: CookSetupStore, onChange: () => void) {
   // "그만 보기" 함수를 그대로 올려 보낸다. 화면이 사라질 때 그걸 불러 정리한다
   return store.subscribe(onChange);
@@ -102,7 +113,10 @@ export function watchCookSetup(store: CookSetupStore, onChange: () => void) {
  * 유튜브 레시피 옮기기·냉장고 재료로 찾기가 이 모델을 쓴다.
  * 목소리를 알아듣는 모델은 고를 수 없어서 여기 끼지 않는다.
  */
+// [F7][함수] modelForSetup(setup): 지금 설정으로 부를 모델 이름을 구한다
+// 입력: setup → 처리: setup.speed → modelForSpeed(domain/gemini-model) → 출력: 모델 이름
 export function modelForSetup(setup: CookSetup): string {
   // 속도에서 모델로 가는 표는 도메인이 쥐고 있다
+  // [F8][호출] setup.speed → modelForSpeed() → 모델 이름 → pick-cards 의 geminiRecipeGateway 로
   return modelForSpeed(setup.speed);
 }

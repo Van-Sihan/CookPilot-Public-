@@ -33,6 +33,9 @@ type Props = {
   errorId: string;
 };
 
+// [F1][함수] AuthField({...}): 로그인·가입 폼이 함께 쓰는 입력칸 하나
+// 입력: 이름표·타입·기본값·오류 여부 등 → 출력: 화면(JSX)
+// 비밀번호 칸이면 눈 아이콘으로 보이기·숨기기를 뒤집는다(브라우저에서 도는 유일한 상태)
 export function AuthField({
   name,
   label,

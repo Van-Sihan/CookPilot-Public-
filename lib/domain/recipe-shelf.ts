@@ -48,6 +48,8 @@ export type BackupRead =
   | { ok: false; problem: BackupProblem };
 
 /** 값 하나가 책 한 권 모양인지 본다. 한 권이라도 이상하면 파일 전체를 안 받는다 */
+// [F1][함수] isBook(value): 값 하나가 책 한 권 모양인지 판정
+// 입력: unknown → 처리: id·title·savedAt 이 모두 글자인지 확인 → 출력: boolean (F5 가 부른다)
 function isBook(value: unknown): value is ShelfBook {
   // 객체가 아니면 볼 것도 없다. null 도 typeof 로는 "object" 라서 따로 걸러 낸다
   if (typeof value !== "object" || value === null) return false;
@@ -70,11 +72,15 @@ function isBook(value: unknown): value is ShelfBook {
  * 서재를 백업 파일로 만든다.
  * 사람이 열어 볼 수도 있는 파일이라 줄바꿈을 넣어 읽기 좋게 적는다.
  */
+// [F2][함수] writeBackup(books): 서재를 백업 파일 글자로 만든다
+// 입력: books(ShelfBook[]) → 처리: 판 번호와 함께 JSON 문자열화 → 출력: 파일에 쓸 문자열
 export function writeBackup(books: readonly ShelfBook[]): string {
   // 판 번호를 같이 적어야 나중에 형식이 바뀌어도 옛 파일을 구분할 수 있다
+  // [F3][흐름] books → {version, books} → backup
   const backup: ShelfBackup = { version: BACKUP_VERSION, books: [...books] };
 
   // 두 칸 들여쓰기. 파일 크기보다 사람이 읽을 수 있는 쪽이 낫다
+  // [F4][반환] JSON 문자열 → makeShelfBackup(keep-recipe-shelf) → pick-rail 이 파일로 내려받는다
   return JSON.stringify(backup, null, 2);
 }
 
@@ -82,16 +88,21 @@ export function writeBackup(books: readonly ShelfBook[]): string {
  * 사람이 고른 파일을 서재에 넣어도 되는지 살펴본다.
  * 남이 준 파일이거나 손으로 고친 파일일 수 있으니 한 칸씩 다 확인한다.
  */
+// [F5][함수] readBackup(text): 고른 파일 글자를 서재 목록으로 받아 줄지 판정
+// 입력: text(파일에서 읽은 글자) → 처리: JSON 파싱 + 판 번호·모양 검사 → 출력: BackupRead
 export function readBackup(text: string): BackupRead {
   // JSON 이 아닌 파일(사진이나 텍스트)을 고르면 여기서 바로 터진다
   let parsed: unknown;
   try {
+    // [F6][흐름] text → JSON.parse() → parsed
     parsed = JSON.parse(text);
   } catch {
+    // [F7][에러] JSON 이 아님 → 'broken' 반환 → 화면이 '파일이 깨졌다' 로 알린다
     return { ok: false, problem: "broken" };
   }
 
   // 배열이나 숫자를 넣었을 수도 있다. 객체가 아니면 백업이 아니다
+  // [F8][분기] 객체가 아님 → true: 'shape' 반환 / false: F9
   if (typeof parsed !== "object" || parsed === null) {
     return { ok: false, problem: "shape" };
   }
@@ -100,21 +111,25 @@ export function readBackup(text: string): BackupRead {
   const backup = parsed as Record<string, unknown>;
 
   // 우리가 만든 파일이 아니거나 나중 판으로 만든 파일이면 잘못 읽을 수 있어 돌려보낸다
+  // [F9][분기] 판 번호가 다름 → true: 'version' 반환 / false: F10
   if (backup.version !== BACKUP_VERSION) {
     return { ok: false, problem: "version" };
   }
 
   // 책 목록 자리가 배열이 아니면 더 볼 것이 없다
+  // [F10][분기] books 가 배열이 아님 → true: 'shape' 반환 / false: F11
   if (!Array.isArray(backup.books)) {
     return { ok: false, problem: "shape" };
   }
 
   // 한 권이라도 모양이 틀리면 절반만 넣지 않고 통째로 돌려보낸다.
   // 반쯤 들어간 서재는 사람이 무엇이 빠졌는지 알 길이 없어서 더 나쁘다
+  // [F11][반복] books 를 훑으며 isBook(F1) 호출 — 한 권이라도 틀리면 멈추고 'shape'
   if (!backup.books.every(isBook)) {
     return { ok: false, problem: "shape" };
   }
 
   // 여기까지 왔으면 전부 책 모양이다
+  // [F12][반환] books → restoreShelfBackup(keep-recipe-shelf) → 저장소를 통째로 갈아 끼운다
   return { ok: true, books: backup.books };
 }

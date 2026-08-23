@@ -19,6 +19,8 @@ export const SHOPPING_MALLS = ["coupang", "kurly", "naver", "ssg"] as const;
 export const DEFAULT_MALL: ShoppingMall = "coupang";
 
 /** 밖에서 들어온 글자를 쇼핑몰로 받아 준다. 모르는 값이면 기본값으로 돌린다 */
+// [F1][함수] resolveMall(raw): 밖에서 온 값을 쇼핑몰로 정리
+// 입력: raw → 처리: SHOPPING_MALLS 목록 대조 → 출력: ShoppingMall
 export function resolveMall(raw: unknown): ShoppingMall {
   // 목록에 있는 이름일 때만 그대로 쓴다
   return SHOPPING_MALLS.includes(raw as ShoppingMall)
@@ -49,8 +51,11 @@ const searchUrls: Record<ShoppingMall, (q: string) => string> = {
  * 한글은 주소에 그대로 실을 수 없어서 반드시 encodeURIComponent 를 거쳐야 한다.
  * 이걸 빠뜨리면 "다진 마늘" 처럼 빈칸이 든 이름에서 주소가 끊긴다.
  */
+// [F2][함수] searchUrl(mall, keyword): 재료 이름으로 쇼핑몰 검색 주소를 만든다
+// 입력: mall + keyword → 처리: trim → encodeURIComponent → 주소 틀에 끼움 → 출력: URL
 export function searchUrl(mall: ShoppingMall, keyword: string): string {
   // 앞뒤 빈칸을 떼고 주소에 실을 수 있는 모양으로 바꾼다
+  // [F3][반환] keyword → trim → encodeURIComponent → searchUrls[mall]() → shop-shell 로 전달
   return searchUrls[mall](encodeURIComponent(keyword.trim()));
 }
 
@@ -64,11 +69,15 @@ export function searchUrl(mall: ShoppingMall, keyword: string): string {
 export const MAX_BULK_OPEN = 8;
 
 /** 한 번에 열 주소 목록. 너무 많으면 앞에서부터 잘라 준다 */
+// [F4][함수] bulkSearchUrls(mall, keywords): 여러 재료를 한 번에 열 주소 목록
+// 입력: mall + keywords → 처리: MAX_BULK_OPEN 만큼 자르고 각각 F2 호출 → 출력: URL 배열
 export function bulkSearchUrls(
   mall: ShoppingMall,
   keywords: readonly string[],
 ): readonly string[] {
   // 막아 둔 개수까지만 자르고 각각 주소로 바꾼다
+  // [F5][반복] keywords 앞에서부터 최대 8개를 훑으며 searchUrl(F2) 호출
+  // [F5][반환] URL 배열 → shop-shell 이 창을 하나씩 연다
   return keywords.slice(0, MAX_BULK_OPEN).map((k) => searchUrl(mall, k));
 }
 
@@ -76,9 +85,13 @@ export function bulkSearchUrls(
  * 장보기 목록을 글자로 옮긴다. 메모장이나 메신저에 붙여 넣으라고 쓰는 값이다.
  * 화면 밖으로 나가는 값이라 도메인이 모양을 정한다 — 화면마다 다른 모양이면 곤란하다.
  */
+// [F6][함수] shoppingListText(items): 장보기 목록을 붙여 넣기 좋은 글자로
+// 입력: items({name, amount}[]) → 처리: '· 이름 분량' 줄로 이어 붙임 → 출력: 문자열
 export function shoppingListText(
   items: readonly { name: string; amount: string }[],
 ): string {
   // 한 줄에 하나씩. 앞에 점을 찍어 두면 메신저에서도 목록으로 보인다
+  // [F7][반복] items 전체를 훑어 줄을 만들고 줄바꿈으로 이음
+  // [F7][반환] 문자열 → shop-shell 의 복사 칸으로 전달
   return items.map((i) => `· ${i.name} ${i.amount}`).join("\n");
 }

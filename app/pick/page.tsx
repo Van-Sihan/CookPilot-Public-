@@ -21,6 +21,10 @@ export const metadata: Metadata = {
  * 머리말은 바뀔 일이 없어서 여기서 그려 껍데기 안으로 넣어 준다 —
  * 그러면 이 부분은 브라우저가 받을 자바스크립트에 끼지 않는다.
  */
+// [F1][함수] PickPage(): 무엇을 만들지 정하는 화면 (/pick) — 네 걸음 중 둘째
+// 입력: 없음 → 처리: 머리말 + PickShell 배치 → 출력: 화면(JSX)
+// 실제 흐름은 components/pick/pick-shell.tsx 안에 있다 —
+// 마이크(voice-console) → planFromSpeech, 카드(pick-cards) → planFromYoutube·findFridgeIdeas
 export default function PickPage() {
   return (
     <>

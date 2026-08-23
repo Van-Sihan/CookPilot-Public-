@@ -28,13 +28,17 @@ const CSV_PATH = path.join(process.cwd(), "samples", "reviews.csv");
  * 첫 번째 콜론에서만 자른다. 후기 내용에 콜론이 들어 있어도(예: "비율: 2 대 1")
  * 뒤쪽은 값으로 남는다.
  */
+// [F1][함수] unflatten(pageContent): CSVLoader 가 뭉쳐 놓은 글을 다시 칸으로 가른다
+// 입력: pageContent(줄마다 '칸이름: 값' 인 글) → 처리: 줄마다 첫 콜론에서 가름 → 출력: {칸: 값}
 function unflatten(pageContent: string): Record<string, string> {
   const out: Record<string, string> = {};
 
   for (const line of pageContent.split("\n")) {
+    // [F2][반복] 줄마다 첫 콜론 위치를 찾아 앞은 칸 이름, 뒤는 값으로 담는다
     const at = line.indexOf(":");
 
     // 콜론이 없는 줄은 앞줄 값이 이어진 것이다. 우리 CSV 에는 없어야 한다
+    // [F3][분기] 콜론이 없거나 맨 앞 → true: 그 줄 건너뜀 / false: out 에 담음
     if (at <= 0) continue;
 
     out[line.slice(0, at).trim()] = line.slice(at + 1).trim();
@@ -51,7 +55,10 @@ export type LoadResult = {
 };
 
 /** CSV 를 읽어 후기 목록으로 바꾼다 */
+// [F4][함수] loadReviews(): samples/reviews.csv 를 읽어 후기 목록으로 만든다
+// 입력: 없음 → 처리: 파일 읽기 → 줄마다 unflatten + readReviewRow → 출력: {reviews, skipped}
 export async function loadReviews(): Promise<LoadResult> {
+  // [F5][외부] ▷ 파일 읽기(samples/reviews.csv) → docs (랭체인 CSVLoader)
   const docs = await new CSVLoader(CSV_PATH).load();
 
   const reviews: Review[] = [];
@@ -59,11 +66,14 @@ export async function loadReviews(): Promise<LoadResult> {
 
   for (const doc of docs) {
     // 칸으로 푼 다음 도메인에게 "받아 줄 만한가" 를 묻는다
+    // [F6][반복] docs 를 훑으며 unflatten(F1) → readReviewRow(domain/review) → review
     const review = readReviewRow(unflatten(doc.pageContent));
 
+    // [F7][분기] review 가 null 이 아님 → true: reviews 에 담음 / false: skipped 를 하나 올림
     if (review) reviews.push(review);
     else skipped += 1;
   }
 
+  // [F8][반환] {reviews, skipped} → app/api/kitchen/index 가 파인콘에 올린다
   return { reviews, skipped };
 }

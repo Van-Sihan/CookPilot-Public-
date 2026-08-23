@@ -33,12 +33,17 @@ import {
 import { findSavedKey, watchSavedKey } from "@/lib/usecase/enter-with-api-key";
 import { askCopy, askMessages, askNeedsKey, askNoHits } from "@/lib/ask-content";
 
+// [F1][함수] AskShell(): AI 챗봇 화면의 껍데기
+// 입력: 없음(브라우저에 담긴 키·대화 id) → 처리: 물음을 /api/chat 으로 보내고 답을 쌓음
+// 출력: 화면(JSX)
 export function AskShell() {
   /* 시작 화면에서 넣어 둔 제미나이 키. 없으면 답을 만들 수 없다 */
   const watchKey = useCallback(
     (fn: () => void) => watchSavedKey(browserApiKeyStore, fn),
     [],
   );
+  // [F2][외부] ▷ useSyncExternalStore(watchKey, findSavedKey) → apiKey
+  // 이 키가 요청마다 몸통에 실려 서버로 간다(우리 서버는 담아 두지 않는다)
   const apiKey = useSyncExternalStore(
     watchKey,
     () => findSavedKey(browserApiKeyStore),
@@ -47,6 +52,7 @@ export function AskShell() {
   );
 
   /* 주고받은 말 */
+  // [F3][흐름] 오간 말 → turns / 입력칸 → draft / 다녀오는 중 → asking / 잔소리 → problem
   const [turns, setTurns] = useState<readonly ChatTurn[]>([]);
 
   /* 지금 이어 붙이고 있는 대화. 브라우저에 담겨 있어서 "바깥 값 지켜보기" 로 따라간다.
@@ -56,6 +62,7 @@ export function AskShell() {
     (fn: () => void) => watchChatId(browserChatIdStore, fn),
     [],
   );
+  // [F4][외부] ▷ useSyncExternalStore(watchId, findChatId) → chatId (이어 붙일 대화)
   const chatId = useSyncExternalStore(
     watchId,
     () => findChatId(browserChatIdStore),
@@ -78,8 +85,10 @@ export function AskShell() {
   /* 담아 둔 대화에 무슨 말이 오갔는지 서버에 물어본다.
      화면을 처음 열 때 한 번만 한다 — 그래서 chatId 가 아니라 loaded 를 본다.
      chatId 를 지켜보게 두면 새 대화가 열릴 때마다 방금 그린 말을 다시 받아 온다 */
+  // [F5][흐름] 지난 대화를 한 번 불러왔는지 → loaded (두 번 부르면 말이 겹친다)
   const loaded = useRef(false);
 
+  // [F6][외부] 화면에 들어올 때 chatId 가 있으면 ▷ GET /api/chat/[id] → 지난 말을 되살린다
   useEffect(() => {
     // 담아 둔 대화가 없거나 이미 한 번 꺼내 왔으면 할 일이 없다
     if (!chatId || loaded.current) return;
@@ -99,15 +108,21 @@ export function AskShell() {
   }, [chatId]);
 
   /* 새 말이 붙을 때마다 바닥으로 내린다 */
+  // [F7][흐름] turns 가 늘면 맨 아래로 굴려 준다(새 말이 화면 밖에 있으면 안 보인다)
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [turns, asking]);
 
   /** 물어본다 */
+  // [F8][함수] ask(raw): 물음 하나를 보내고 답을 받는다
+  // 입력: raw(입력칸 글자) → 처리: 내 말 먼저 붙임 → POST /api/chat → 답을 붙임
+  // 출력: 없음(비동기, 상태만 바꾼다)
   async function ask(raw: string) {
     // 기다리는 중에 또 누르면 무시한다. 두 번 물으면 값도 두 번 나간다
+    // [F9][분기] 이미 다녀오는 중 → true: 무시(두 번 물으면 값도 두 번 나간다) / false: F10
     if (asking) return;
 
+    // [F10][흐름] raw → trim() → text. 비었거나 키가 없으면 여기서 끝낸다
     const text = raw.trim();
     if (text.length === 0) return;
 
@@ -116,6 +131,7 @@ export function AskShell() {
 
     /* 내가 한 말을 먼저 붙인다. 답을 기다리는 동안 내 말이 안 보이면
        눌린 건지 아닌지 알 수 없다 */
+    // [F11][흐름] 지금까지의 turns → before → 내 말을 붙여 화면에 **먼저** 보여 준다
     const before = turns;
 
     setDraft("");
@@ -126,6 +142,7 @@ export function AskShell() {
     let result: AskResult;
 
     try {
+      // [F12][외부] {question, history: before, chatId, apiKey} ▷ POST /api/chat (route:F4) → res
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -136,13 +153,16 @@ export function AskShell() {
         body: JSON.stringify({ question: text, history: before, chatId, apiKey }),
       });
 
+      // [F13][흐름] res.json() → result (AskResult)
       result = (await res.json()) as AskResult;
     } catch {
+      // [F14][에러] 다녀오지 못함 → result = 'unreachable'
       result = { ok: false, reason: "unreachable" };
     }
 
     setAsking(false);
 
+    // [F15][분기] result.ok → true: 답을 turns 에 붙이고, 새 대화면 id 를 담아 둔다 / false: F16
     if (result.ok) {
       setTurns((now) => [...now, result.turn]);
 
@@ -159,12 +179,15 @@ export function AskShell() {
 
     /* 걸리는 후기가 없는 것은 고장이 아니다. 챗봇이 "못 찾았다" 고 말하는 것이
        맞지, 빨간 오류 줄로 보여 줄 일이 아니다 */
+    // [F16][분기] 'no-hits'(걸린 후기 없음) → true: 챗봇 말투로 알린다(오류 줄이 아니다) / false: F17
     if (result.reason === "no-hits") {
       setTurns((now) => [...now, { role: "assistant", content: askNoHits }]);
       return;
     }
 
     // 나머지는 사람이 뭔가 해야 풀리는 것들이다. 무엇을 하라고 적어 준다
+    // [F17][흐름] 그 밖의 까닭 → 문장으로 바꿔 problem
+    // [F17][흐름] turns 를 before 로 되돌리고 적었던 글을 입력칸에 되돌려준다
     setProblem(askMessages[result.reason]);
 
     // 답을 못 받았으니 방금 붙인 내 말도 거둔다. 남겨 두면 못 받은 채로 걸려 있다
@@ -173,6 +196,8 @@ export function AskShell() {
   }
 
   /** 대화를 비운다. 담아 둔 id 까지 버려야 새 대화가 열린다 */
+  // [F18][함수] onClear(): 대화를 비운다
+  // 입력: 없음 → 처리: turns 비우기 + forgetChatId(usecase:F14) → 출력: 없음
   function onClear() {
     setTurns([]);
     setProblem(null);
@@ -278,6 +303,8 @@ export function AskShell() {
 }
 
 /** 말풍선 하나. 내가 한 말과 챗봇이 한 말이 같은 틀을 쓴다 */
+// [F19][함수] Bubble({turn}): 말풍선 하나. 챗봇 말에는 근거(sources)가 붙는다
+// 입력: turn(ChatTurn) → 출력: 화면(JSX)
 function Bubble({ turn }: { turn: ChatTurn }) {
   const mine = turn.role === "user";
 

@@ -38,6 +38,8 @@ export const MIN_RATING = 1;
 export const MAX_RATING = 5;
 
 /** 값 하나를 글자로 받아 준다. 없으면 빈 글자 */
+// [F1][함수] asText(value): 아무 값이나 글자로 받아 준다 (F5 가 여러 번 부른다)
+// 입력: unknown → 처리: 숫자면 문자열화, 글자면 trim → 출력: string
 function asText(value: unknown): string {
   if (typeof value === "number") return String(value);
 
@@ -45,6 +47,8 @@ function asText(value: unknown): string {
 }
 
 /** 값 하나를 숫자로 받아 준다. 못 읽으면 준 기본값 */
+// [F2][함수] asNumber(value, fallback): 아무 값이나 숫자로 받아 준다
+// 입력: unknown + 기본값 → 처리: Number() 후 유한수 확인 → 출력: number
 function asNumber(value: unknown, fallback: number): number {
   const n = typeof value === "string" ? Number(value) : value;
 
@@ -59,18 +63,24 @@ function asNumber(value: unknown, fallback: number): number {
  * 빈 후기가 섞여 나오는데, 그때는 어디서 잘못됐는지 찾기 어렵다.
  * 여기서 걸러 내면 "몇 줄이 버려졌다" 를 올리는 자리에서 셀 수 있다.
  */
+// [F3][함수] readReviewRow(row): CSV 한 줄을 후기 한 건으로 받아 준다
+// 입력: row(csv-reviews 가 넘긴 한 줄) → 처리: 필수 칸 검사 + 형 변환 → 출력: Review 또는 null
 export function readReviewRow(row: Record<string, unknown>): Review | null {
+  // [F4][호출] row.id·row.content → asText(F1) → id, content
   const id = asText(row.id);
   const content = asText(row.content);
 
   // id 가 없으면 덮어쓸 자리를 정할 수 없고, 내용이 없으면 검색될 것이 없다
+  // [F5][분기] id 또는 content 가 빔 → true: null 반환(줄 버림) / false: F6
   if (id.length === 0 || content.length === 0) return null;
 
   const dish = asText(row.dish);
 
   // 요리 이름이 없으면 답에 출처를 못 붙인다. 근거 없는 답이 되므로 버린다
+  // [F6][분기] dish 가 빔 → true: null 반환 / false: F7
   if (dish.length === 0) return null;
 
+  // [F7][반환] 칸을 모두 변환한 Review → csv-reviews → langchain-rag 의 색인으로 전달
   return {
     id,
     dishId: asText(row.dish_id),
@@ -89,6 +99,8 @@ export function readReviewRow(row: Record<string, unknown>): Review | null {
 }
 
 /** 별점을 1~5 안으로 밀어 넣는다 */
+// [F8][함수] clampRating(n): 별점을 1~5 안으로 민다
+// 입력: n → 처리: 반올림 후 아래위 자름 → 출력: 1~5 숫자
 export function clampRating(n: number): number {
   return Math.min(MAX_RATING, Math.max(MIN_RATING, Math.round(n)));
 }
@@ -107,6 +119,9 @@ export function clampRating(n: number): number {
  * 여기서 만든 글자가 그대로 벡터가 된다. 이 함수가 이 챗봇의 검색 품질을
  * 절반쯤 쥐고 있다.
  */
+// [F9][함수] reviewText(review): 후기 한 건을 검색에 걸릴 글자로 편다
+// 입력: Review → 처리: 요리·별점·제목·후기·검증여부를 줄로 이음 → 출력: 임베딩할 문자열
+// [F9][반환] 이 글자가 그대로 벡터가 되어 파인콘에 올라간다(langchain-rag)
 export function reviewText(review: Review): string {
   return [
     `요리: ${review.dish}`,

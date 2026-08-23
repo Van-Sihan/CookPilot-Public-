@@ -16,8 +16,11 @@ const STORAGE_KEY = "cookpilot.gemini-key";
 const listeners = new Set<() => void>();
 
 /** 명단에 있는 모두에게 한 번씩 알린다 */
+// [F1][함수] notify(): 명단에 있는 모두에게 '바뀌었다' 고 알린다
+// 입력: 없음(모듈의 listeners) → 처리: 하나씩 호출 → 출력: 없음
 function notify() {
   // 알리는 도중에 누가 명단에서 빠질 수도 있지만 Set 은 그 정도는 견딘다
+  // [F2][반복] listeners 전체를 훑으며 각 콜백 호출 → useSyncExternalStore 가 다시 그린다
   listeners.forEach((fn) => fn());
 }
 
@@ -25,7 +28,11 @@ function notify() {
  * 키는 이 브라우저 안에만 있고 서버로 보내지 않는다 — 요금제 안내에 그렇게 적어 두었다.
  * 그래서 쿠키가 아니라 localStorage 를 쓴다. 쿠키는 요청할 때마다 서버로 따라가 버린다.
  */
+// [F3][함수] browserApiKeyStore: 유스케이스의 ApiKeyStore 약속을 localStorage 로 채운다
+// save/load/clear/subscribe 네 가지를 아래에서 하나씩 구현한다
 export const browserApiKeyStore: ApiKeyStore = {
+  // [F4][함수] save(key): 키를 담아 둔다
+  // 입력: key → 처리: localStorage 기록 후 notify → 출력: 없음
   save(key: ApiKey) {
     // 저장을 막아 둔 브라우저에서는 여기서 오류가 나고, 그건 유스케이스가 받아 준다
     window.localStorage.setItem(STORAGE_KEY, key);
@@ -34,6 +41,8 @@ export const browserApiKeyStore: ApiKeyStore = {
     notify();
   },
 
+  // [F5][함수] load(): 담아 둔 키를 꺼낸다
+  // 입력: 없음 → 처리: localStorage 읽기 → 출력: ApiKey 또는 null
   load() {
     // 서버에서 화면을 그리는 동안에는 window 가 아예 없다. 그래서 먼저 막는다
     if (typeof window === "undefined") return null;
@@ -45,6 +54,8 @@ export const browserApiKeyStore: ApiKeyStore = {
     return saved ? (saved as ApiKey) : null;
   },
 
+  // [F6][함수] clear(): 담아 둔 키를 지운다
+  // 입력: 없음 → 처리: localStorage 삭제 후 notify → 출력: 없음
   clear() {
     // 빈 값으로 덮지 않고 아예 지운다. 남아 있으면 "키가 있다" 로 잘못 읽힌다
     window.localStorage.removeItem(STORAGE_KEY);
@@ -53,6 +64,8 @@ export const browserApiKeyStore: ApiKeyStore = {
     notify();
   },
 
+  // [F7][함수] subscribe(onChange): 바뀌면 알려 달라고 명단에 올린다
+  // 입력: onChange → 처리: listeners 등록 + storage 이벤트 연결 → 출력: 해제 함수
   subscribe(onChange: () => void) {
     // 같은 탭에서 생긴 변화를 받을 수 있게 명단에 올린다
     listeners.add(onChange);

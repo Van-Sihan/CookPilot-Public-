@@ -20,15 +20,23 @@ import { AuthField } from "@/components/auth/auth-field";
 import { Icon } from "@/components/icons";
 import { credentialMessages, signupCopy } from "@/lib/site-content";
 
+// [F1][함수] SignupForm(): 회원가입 폼
+// 입력: 닉네임·이메일·비밀번호·확인 → 처리: signUpAction 에 넘김 → 출력: 화면(JSX)
 export function SignupForm() {
   // 로그인 폼과 같은 구조. 부르는 Server Action 만 다르다
+  // [F2][흐름] useActionState(signUpAction) → state · action · pending
+  // 폼 제출 → ▷ signUpAction(app/actions/auth.ts:F8)
   const [state, action, pending] = useActionState(signUpAction, emptyAuthState);
 
   // 서버가 돌려준 까닭을 사람이 읽을 말로 바꾼다
+  // [F3][분기] state.reason 이 있나? [true] 문장으로 바꿔 message / [false] null
   const message = state.reason ? credentialMessages[state.reason] : null;
 
   /* 가입은 됐는데 메일함의 링크를 눌러야 하는 경우.
      실패가 아니라서 잔소리 자리가 아니라 따로 안내로 보여 준다 */
+  // [F4][분기] 서버가 checkMail 을 돌려줬나?
+  // [true]  → 폼 대신 '메일함을 봐 주세요' 화면을 그리고 여기서 끝낸다
+  // [false] → 아래 폼을 그린다
   if (state.checkMail) {
     return (
       <div className="login-card">

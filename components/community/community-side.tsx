@@ -12,6 +12,7 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { TagLink } from "@/components/community/tag-link";
 import {
   COMMUNITY_TABS,
   DEFAULT_TAB,
@@ -24,6 +25,9 @@ import {
   rankedChefs,
 } from "@/lib/site-content";
 
+// [F1][함수] CommunitySide({now}): 커뮤니티 왼쪽 기둥(탭·인기 셰프·자주 찾는 태그)
+// 입력: now(지금 탭, 서버가 resolveTab 으로 정해 넘긴 값) → 출력: 화면(JSX)
+// 탭이 단추가 아니라 링크라 브라우저에서 할 일이 없다 — 서버에서만 그려진다
 export function CommunitySide({ now }: { now: CommunityTab }) {
   return (
     <aside className="cm-side">
@@ -33,6 +37,7 @@ export function CommunitySide({ now }: { now: CommunityTab }) {
 
         <ul className="cm-tabs">
           {/* 차례는 도메인이 정한 순서를 그대로 따른다 */}
+          {/* [F2][반복] COMMUNITY_TABS 를 훑어 탭 링크를 그린다. tab === now 면 불이 들어온다 */}
           {COMMUNITY_TABS.map((tab) => {
             // 지금 서 있는 탭인지. 색과 왼쪽 띠가 이 값 하나로 갈린다
             const on = tab === now;
@@ -70,6 +75,7 @@ export function CommunitySide({ now }: { now: CommunityTab }) {
         {/* 순서가 곧 등수라 번호 매기는 목록을 쓴다.
             눈에 보이는 숫자만 있고 목록은 그냥 ul 이면, 읽어 주는 기계는 순위인 줄 모른다 */}
         <ol className="cm-rank">
+          {/* [F3][반복] rankedChefs 를 훑어 이번 주 인기 셰프를 그린다 */}
           {rankedChefs.map((chef, i) => (
             <li key={chef.name}>
               {/* 등수는 배열 차례에서 뽑는다. 데이터에 적어 두면 순서만 바꿨을 때 어긋난다 */}
@@ -93,13 +99,14 @@ export function CommunitySide({ now }: { now: CommunityTab }) {
         <p className="cm-side-head">{communityCopy.tagLabel}</p>
 
         <ul className="cm-tags">
+          {/* [F4][반복] popularTags 를 훑어 TagLink 로 그린다 → /community?q=<태그> */}
           {popularTags.map((t) => (
             <li key={t.label}>
-              {/* 태그로 걸러 보는 화면이 아직 없어 주소는 자리만 잡아 둔다 */}
-              <a href="#">
-                <span className="cm-tag-label">#{t.label}</span>
+              {/* 카드에 붙은 카테고리 딱지와 **같은 곳**으로 간다.
+                  태그 전용 화면을 따로 두면 두 길의 결과가 어긋난다 */}
+              <TagLink tag={t.label} hash className="">
                 <span className="cm-tag-count">{t.count}</span>
-              </a>
+              </TagLink>
             </li>
           ))}
         </ul>

@@ -23,14 +23,23 @@ export const metadata: Metadata = {
  * 그 판단을 서버에서 해서 넘기는 까닭 — 브라우저에서 주소를 다시 읽으면
  * 서버가 그린 화면과 브라우저가 그린 화면이 잠깐 달라진다.
  */
+// [F1][함수] WritePage(props): 커뮤니티에 글 쓰는 화면 (/write)
+// 입력: props.searchParams(?from=cook) → 처리: 로그인 확인 → WriteForm 에 fromCook 전달
+// 출력: 화면(JSX) 또는 redirect
 export default async function WritePage(props: PageProps<"/write">) {
+  // [F2][흐름] props.searchParams(기다려야 하는 값) → params
   const params = await props.searchParams;
 
   /* 로그인 안 한 사람은 글을 못 쓴다. 폼을 보여 주고 나서 저장할 때 막으면
      다 적은 글이 날아간다 — 들어올 때 막는 편이 낫다 */
+  // [F3][외부] ▷ currentUserEmail(adapter/supabase-auth-gateway:F12) → email
   const email = await currentUserEmail().catch(() => null);
+  // [F4][분기] 로그인 안 함 → true: ▷ redirect('/login?next=/write')
+  // (폼을 다 적고 나서 막으면 쓴 글이 날아간다. 들어올 때 막는다) / false: F5
   if (!email) redirect("/login?next=/write");
 
+  // [F5][흐름] params.from === 'cook' → fromCook
+  // [F5][반환] fromCook → WriteForm 이 draftFromRecipe(domain:F7) 로 칸을 미리 채운다
   const fromCook = params.from === "cook";
 
   return (

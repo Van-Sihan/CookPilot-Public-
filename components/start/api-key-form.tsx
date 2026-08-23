@@ -20,8 +20,12 @@ import {
 } from "@/lib/usecase/enter-with-api-key";
 import { apiKeyMessages, apiKeyPlaceholder } from "@/lib/site-content";
 
+// [F1][함수] ApiKeyForm(): API 키를 넣고 담아 두는 카드
+// 입력: 사람이 붙여넣는 키 → 처리: enterWithApiKey 호출 → 출력: 화면(JSX)
+// 담긴 키는 저장소를 지켜보다가(useSyncExternalStore) 카드 모습을 바꾼다
 export function ApiKeyForm() {
   /* 입력칸에 지금 적혀 있는 글자. 이 값은 이 카드가 직접 들고 있는다 */
+  // [F2][흐름] 입력칸 글자 → raw / 보이기 여부 → shown / 잔소리 → message
   const [raw, setRaw] = useState("");
 
   /* 키를 눈에 보이게 할지 말지. 제대로 붙여 넣었는지 눈으로 볼 방법은 있어야 하니까 */
@@ -33,6 +37,9 @@ export function ApiKeyForm() {
   /* 저장된 키가 바뀌면 알려 달라고 부탁하는 함수.
      화면을 다시 그릴 때마다 이 함수가 새로 만들어지면, 부탁했다 취소했다를 끝없이 되풀이한다.
      그래서 한 번 만든 것을 계속 붙들고 쓴다 */
+  // [F3][함수] subscribe(fn): 담아 둔 키가 바뀌는지 지켜보라고 부탁하는 함수
+  // 입력: fn → 처리: watchSavedKey(usecase:F9) → 출력: 해제 함수
+  // useCallback 으로 감싸는 까닭 — 다시 그릴 때마다 새로 만들면 부탁했다 취소했다를 되풀이한다
   const subscribe = useCallback(
     (onChange: () => void) => watchSavedKey(browserApiKeyStore, onChange),
     [],
@@ -44,6 +51,8 @@ export function ApiKeyForm() {
    * 서버에서 그릴 때는 늘 "없음" 이라고 답하게 해 두었다.
    * 그래야 서버가 그린 화면과 브라우저가 그린 첫 화면이 서로 어긋나지 않는다.
    */
+  // [F4][외부] ▷ useSyncExternalStore(subscribe, findSavedKey) → saved
+  // 서버에서 그릴 때는 늘 null (저장 공간이 없다)
   const saved = useSyncExternalStore<ApiKey | null>(
     // 값이 바뀌면 알려 달라고 부탁하는 길
     subscribe,
@@ -53,14 +62,18 @@ export function ApiKeyForm() {
     () => null,
   );
 
+  // [F5][함수] onSubmit(e): '시작하기' 를 눌렀을 때
+  // 입력: raw → 처리: enterWithApiKey(usecase:F1) → 출력: 없음(상태만 바꾼다)
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     /* 가만두면 브라우저가 페이지를 통째로 새로 고쳐 버린다. 그걸 막는다 */
     e.preventDefault();
 
     /* 검사하고 담아 두는 일은 통째로 유스케이스에 맡긴다 */
+    // [F6][호출] raw + browserApiKeyStore → enterWithApiKey(usecase:F1) → result
     const result = enterWithApiKey(raw, browserApiKeyStore);
 
     // 안 됐으면 화면은 그대로 두고 까닭만 알려 준다
+    // [F7][분기] result.ok → false: 까닭을 문장으로 바꿔 띄우고 멈춤 / true: F8
     if (!result.ok) {
       /* 돌아온 까닭을 사람이 읽을 수 있는 말로 바꿔서 보여 준다 */
       setMessage(apiKeyMessages[result.reason]);
@@ -68,6 +81,7 @@ export function ApiKeyForm() {
     }
 
     /* 잘됐으니 아까 띄워 둔 잔소리를 치우고 */
+    // [F8][흐름] 잔소리를 치우고 입력칸을 비운다 — 카드 모습은 F4 가 알아서 바꾼다
     setMessage(null);
 
     /* 입력칸에 키가 그대로 남아 있으면 위험하니 비운다 */
@@ -76,6 +90,8 @@ export function ApiKeyForm() {
     /* 카드가 "키 저장됨" 모습으로 바뀌는 건, 위에서 지켜보라고 해 둔 쪽이 알아서 한다 */
   }
 
+  // [F9][함수] onChangeKey(): '키 바꾸기' 를 눌렀을 때
+  // 입력: 없음 → 처리: forgetSavedKey(usecase:F8) ▷ localStorage 삭제 → 출력: 없음
   function onChangeKey() {
     /* 담아 둔 키를 버리면 입력칸이 다시 나온다 */
     forgetSavedKey(browserApiKeyStore);
@@ -84,6 +100,7 @@ export function ApiKeyForm() {
   }
 
   /* 처음엔 늘 입력칸이 보이고, 담아 둔 키를 읽어 오면 그때 모습이 바뀐다 */
+  // [F10][분기] hasSaved → true: '키 저장됨' 카드 / false: 입력칸 카드
   const hasSaved = saved !== null;
 
   return (

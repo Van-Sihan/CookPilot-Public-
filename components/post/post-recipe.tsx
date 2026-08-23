@@ -18,6 +18,8 @@ import { postCopy } from "@/lib/post-copy";
  * 한 시간이 안 되면 "분" 만, 딱 떨어지면 "시간" 만 적는다 —
  * "3시간 0분" 은 틀리지 않았을 뿐 읽기 나쁘다.
  */
+// [F1][함수] timeText(minutes): 분을 '약 1시간 25분' 처럼 적는다
+// 입력: minutes → 처리: splitMinutes(domain/recipe:F19) → 출력: 문자열
 function timeText(minutes: number): string {
   const { hours, minutes: rest } = splitMinutes(minutes);
 
@@ -27,6 +29,8 @@ function timeText(minutes: number): string {
   return `${hours}${postCopy.hourUnit} ${rest}${postCopy.minuteUnit}`;
 }
 
+// [F2][함수] PostRecipe({recipe}): 예시 글 옆에 붙는 레시피 칸
+// 입력: recipe → 처리: 인분·시간·재료·순서 배치 + CookThis 단추 → 출력: 화면(JSX)
 export function PostRecipe({ recipe }: { recipe: Recipe }) {
   /* 걸음마다 적힌 시간을 다 더한 값. 재료 손질까지 포함한 어림이다.
      목록 카드의 "45분" 은 사람이 적은 값이고 이쪽은 계산한 값이라 다를 수 있다 */
@@ -58,6 +62,7 @@ export function PostRecipe({ recipe }: { recipe: Recipe }) {
       <h3 className="pd-rsub">{postCopy.ingredientsLabel}</h3>
 
       <ul className="pd-ing">
+        {/* [F3][반복] ingredients 를 훑어 재료를 한 줄씩 그린다 */}
         {recipe.ingredients.map((i) => (
           <li key={i.name}>
             <span className="pd-ing-n">
@@ -76,6 +81,7 @@ export function PostRecipe({ recipe }: { recipe: Recipe }) {
 
       {/* ol 로 두면 번호를 CSS 가 아니라 브라우저가 매긴다. 순서가 뜻을 가진 목록이다 */}
       <ol className="pd-steps">
+        {/* [F4][반복] steps 를 훑어 순서를 한 줄씩 그린다 */}
         {recipe.steps.map((s) => (
           <li key={s.text}>
             <span className="pd-step-t">{s.text}</span>

@@ -19,6 +19,9 @@ export const metadata: Metadata = {
 };
 
 /** /start — 홈의 "무료로 시작하기" 를 누르면 오는 곳. 구역을 위에서 아래로 늘어놓기만 한다 */
+// [F1][함수] StartPage(): API 키를 넣는 화면 (/start) — 네 걸음 중 첫째
+// 입력: 없음 → 처리: StepTrack(1) + ApiKeyForm 배치 → 출력: 화면(JSX)
+// 폼이 눌리면 components/start/api-key-form.tsx → enterWithApiKey(usecase:F1)
 export default function StartPage() {
   return (
     <>

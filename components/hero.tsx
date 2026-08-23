@@ -3,6 +3,8 @@ import { Waveform } from "@/components/brand";
 import { heroTalk } from "@/lib/site-content";
 
 /** 첫 화면. 왼쪽은 우리가 하는 약속, 오른쪽은 그게 실제로 어떤 모습인지 보여 준다. */
+// [F1][함수] Hero(): 소개 페이지 맨 위의 큰 자리
+// 입력: 없음(site-content) → 처리: 제목·설명·말풍선 배치 → 출력: 화면(JSX)
 export function Hero() {
   return (
     // glow 는 뒤에 모닥불 같은 빛을 깔아 주는 이름표다
@@ -65,6 +67,7 @@ export function Hero() {
             {/* 주고받는 말이 쌓이는 자리 */}
             <div className="talk">
               {/* 미리 정해 둔 대사라 순서가 절대 안 바뀐다. 그래서 몇 번째인지를 이름표로 써도 된다 */}
+              {/* [F2][반복] heroTalk 을 훑어 주고받는 말풍선을 그린다 */}
               {heroTalk.map((t, i) => (
                 // 내가 한 말은 오른쪽에, 쿡파일럿이 한 말은 왼쪽에 붙인다
                 <div key={i} className={`turn ${t.side}`}>

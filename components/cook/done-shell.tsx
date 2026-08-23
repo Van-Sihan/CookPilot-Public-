@@ -12,7 +12,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState, useSyncExternalStore } from "react";
-import { Logo } from "@/components/brand";
 import { browserRecipeDraftStore } from "@/lib/adapter/browser-recipe-draft-store";
 import { browserRecipeShelfStore } from "@/lib/adapter/browser-recipe-shelf-store";
 import { DEFAULT_MALL, searchUrl, type ShoppingMall } from "@/lib/domain/shopping";
@@ -32,6 +31,8 @@ import {
 
 /** 표지에 쓸 수 있는 색조 하나 */
 
+// [F1][함수] DoneShell(): 요리 완성 화면의 껍데기
+// 입력: 없음(담아 둔 레시피) → 처리: 표지 그리기·서재 꽂기·재료 다시 담기 → 출력: 화면(JSX)
 export function DoneShell() {
   /* 새 요리를 시작할 때 데려간다 */
   const router = useRouter();
@@ -41,6 +42,7 @@ export function DoneShell() {
     (fn: () => void) => watchDraft(browserRecipeDraftStore, fn),
     [],
   );
+  // [F2][외부] ▷ useSyncExternalStore(watchRecipe, findDraft) → recipe
   const recipe = useSyncExternalStore(
     watchRecipe,
     () => findDraft(browserRecipeDraftStore),
@@ -52,6 +54,7 @@ export function DoneShell() {
     (fn: () => void) => watchShelf(browserRecipeShelfStore, fn),
     [],
   );
+  // [F3][외부] ▷ useSyncExternalStore(watchBooks, countShelfBooks) → books(권수)
   const books = useSyncExternalStore(
     watchBooks,
     () => countShelfBooks(browserRecipeShelfStore),
@@ -59,6 +62,7 @@ export function DoneShell() {
   );
 
   /* 고른 표지 색 */
+  // [F4][흐름] 고른 표지 색조 → tone / 쇼핑몰 → mall / 알림 한 줄 → note
   const [tone, setTone] = useState<CoverTone>("ember");
 
   /* 어느 쇼핑몰로 보낼지 */
@@ -68,9 +72,11 @@ export function DoneShell() {
   const [note, setNote] = useState<string | null>(null);
 
   /* 표지를 그림 파일로 만들 때 쓰는 자리. 화면에는 안 보인다 */
+  // [F5][흐름] 표지를 그리는 캔버스 → canvasRef (화면에는 안 보인다)
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   /* 만든 요리가 없으면 여기서 끝낸다 */
+  // [F6][분기] 정해 둔 요리 없음 → true: 안내를 그리고 끝낸다 / false: 아래를 그린다
   if (!recipe) {
     return (
       <div className="shop-empty">
@@ -84,12 +90,15 @@ export function DoneShell() {
 
   /* 이번에 쓴 재료 중 광고가 걸린 것들의 값을 더한다.
      실제로 낸 돈이 아니라 "스폰서 상품 기준" 이라는 것을 화면에도 밝혀 둔다 */
+  // [F7][반복] ingredients 를 훑어 광고가 붙는 상품 값을 더한다 → sponsoredTotal
   const sponsoredTotal = recipe.ingredients.reduce(
     (sum, i) => sum + (sponsoredFor(i.name)?.price ?? 0),
     0,
   );
 
   /** 서재에 꽂는다 */
+  // [F8][함수] onShelve(): 이 레시피를 서재에 꽂는다
+  // 입력: recipe + tone → 처리: id·시각을 만들어 shelveRecipe(usecase:F7) → 출력: 없음
   function onShelve() {
     const result = shelveRecipe(
       {
@@ -126,15 +135,20 @@ export function DoneShell() {
    * 캔버스에 직접 그리는 까닭은 파일로 내려받아야 하기 때문이다. HTML 로
    * 그려 두면 화면에는 예쁘지만 그림 파일로 저장할 길이 없다.
    */
+  // [F9][함수] onDownloadCover(): 레시피 카드를 그려 그림 파일로 내려받는다
+  // 입력: recipe + tone → 처리: drawRecipeCard → toDataURL → 숨은 링크 클릭 → 출력: 없음
   function onDownloadCover() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     // 그리는 일은 글쓰기 화면과 같은 함수가 한다. 두 벌로 두면 어긋난다
+    // [F10][호출] canvas + recipe + tone → drawRecipeCard(lib/recipe-card:F1)
+    // 글쓰기 화면과 **같은 함수**를 쓴다. 두 벌로 두면 내려받은 그림과 글의 그림이 달라진다
     drawRecipeCard(canvas, recipe!, tone);
 
     /* 그림을 파일로 내려받는다. 화면에 안 붙인 링크를 만들어 대신 눌러 준다 */
     const a = document.createElement("a");
+    // [F11][외부] ▷ canvas.toDataURL() → 숨은 링크를 눌러 파일로 저장
     a.href = canvas.toDataURL("image/png");
     a.download = `${recipe!.title}-레시피카드.png`;
     a.click();
@@ -159,19 +173,30 @@ export function DoneShell() {
             <span aria-hidden="true">🖼</span> {doneCopy.coverLabel}
           </h2>
 
-          {/* 표지. 사진 없이 CSS 로 그린다 */}
+          {/* 표지 미리보기. 진짜 그림은 캔버스가 그리지만, 그리기 전에
+              무엇이 나올지 보여 준다. 그래서 실제 카드와 같은 색·같은 차례로 둔다 —
+              여기만 다르게 두면 내려받고 나서 "이게 아닌데" 가 된다 */}
           <div
             className="dn-cover"
             style={
               {
-                "--cover-top": coverColors[tone][0],
-                "--cover-bottom": coverColors[tone][1],
+                "--cover-paper": coverColors[tone].paper,
+                "--cover-ink": coverColors[tone].ink,
+                "--cover-dim": coverColors[tone].dim,
+                "--cover-accent": coverColors[tone].accent,
+                "--cover-line": coverColors[tone].line,
               } as React.CSSProperties
             }
           >
-            <Logo size={54} id="cover" />
+            {/* 글자 사이를 벌린 이름표. 카드 맨 위에 놓이는 것과 같다 */}
+            <p className="dn-cover-brand">COOKPILOT</p>
+
             <p className="dn-cover-title">{recipe.title}</p>
-            <p className="dn-cover-serv">{recipe.servings}인분</p>
+
+            {/* 인분과 걸음 수. 카드에 적히는 줄을 그대로 옮겼다 */}
+            <p className="dn-cover-serv">
+              {recipe.servings}인분 · {recipe.steps.length}단계
+            </p>
           </div>
 
           {/* 표지 색 고르기 */}
@@ -188,10 +213,12 @@ export function DoneShell() {
                   onChange={() => setTone(t)}
                 />
                 {/* 색만 보여 주는 동그라미 */}
+                {/* 종이 색은 넷이 다 비슷해서 동그라미로는 안 갈린다.
+                    색조를 실제로 가르는 것은 머리말 색이라 그쪽을 보여 준다 */}
                 <span
                   className="dn-swatch"
                   aria-hidden="true"
-                  style={{ background: coverColors[t][0] }}
+                  style={{ background: coverColors[t].accent }}
                 />
                 {coverToneLabels[t]}
               </label>

@@ -10,6 +10,9 @@ import { navLinks, site } from "@/lib/site-content";
  * 좁은 화면에서는 줄 세 개짜리 단추를 눌러 서랍처럼 펼친다.
  * 서랍은 링크를 누르면 알아서 닫히고, Esc 키로도 닫힌다.
  */
+// [F1][함수] SiteHeader(): 소개 페이지 맨 윗줄(로고·메뉴·시작 단추)
+// 입력: 없음(site-content 의 navLinks) → 출력: 화면(JSX)
+// 넓은 화면과 좁은 화면에서 같은 navLinks 를 두 번 그린다
 export function SiteHeader() {
   /* 좁은 화면 서랍이 열려 있는지 아닌지. 이 값 하나로 단추 모양과 서랍이 같이 움직인다 */
   const [open, setOpen] = useState(false);

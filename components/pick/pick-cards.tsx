@@ -11,6 +11,12 @@
  * 까닭은 하는 일이 한 줄 적는 것뿐이기 때문이다 — 화면을 옮기면 왜 왔는지
  * 잊어버리고, 뒤로 돌아올 길도 만들어야 한다.
  *
+ * 두 길이 하는 일이 다르다.
+ *   · 유튜브는 영상 하나에 레시피 하나라 곧장 장보기로 넘어간다.
+ *   · 냉장고는 **먼저 후보를 늘어놓고 고르게 한다.** 재료만 적었을 때 무엇이
+ *     나올지는 사람도 모르는데, 우리가 하나를 골라 던지면 마음에 안 들 때
+ *     처음부터 다시 적는 수밖에 없다.
+ *
  * 맨 오른쪽 브랜드 레시피는 광고를 파는 자리다. 살 사람을 기다리는 중이라
  * "준비 중" 이 아니라 "광고 모집중" 이라고 적는다.
  */
@@ -21,10 +27,15 @@ import { Icon } from "@/components/icons";
 import { browserApiKeyStore } from "@/lib/adapter/browser-api-key-store";
 import { browserRecipeDraftStore } from "@/lib/adapter/browser-recipe-draft-store";
 import { geminiRecipeGateway } from "@/lib/adapter/gemini-recipe-gateway";
+import type { FridgeIdea } from "@/lib/domain/recipe";
 import type { CookSetup } from "@/lib/usecase/choose-cook-setup";
 import { modelForSetup } from "@/lib/usecase/choose-cook-setup";
 import { findSavedKey } from "@/lib/usecase/enter-with-api-key";
-import { planFromFridge, planFromYoutube } from "@/lib/usecase/plan-recipe";
+import {
+  findFridgeIdeas,
+  planFromFridgeIdea,
+  planFromYoutube,
+} from "@/lib/usecase/plan-recipe";
 import { planMessages } from "@/lib/cook-content";
 import { answerSpeedCards, brandSamples, pickCards, pickCopy } from "@/lib/site-content";
 
@@ -39,6 +50,17 @@ type Props = {
 /** 지금 어느 카드가 펼쳐져 있는지. 하나만 펼쳐진다 */
 type OpenCard = "youtube" | "fridge" | "brand" | null;
 
+/** 까닭 낱말을 사람이 읽을 말로 바꾼다. 두 길이 같은 표를 쓴다 */
+// [F1][함수] messageFor(reason): 까닭 낱말을 사람이 읽을 말로 바꾼다
+// 입력: reason → 처리: planMessages 표 조회 → 출력: 문장
+function messageFor(reason: string): string {
+  return (
+    planMessages[reason as keyof typeof planMessages] ?? planMessages.unreachable
+  );
+}
+
+// [F2][함수] PickCards({setup, servings}): 말 대신 다른 길로 시작하는 카드 세 장
+// 입력: setup(속도) + servings → 처리: 유튜브·냉장고·브랜드 세 갈래 → 출력: 화면(JSX)
 export function PickCards({ setup, servings }: Props) {
   const router = useRouter();
 
@@ -46,36 +68,67 @@ export function PickCards({ setup, servings }: Props) {
   const speed = answerSpeedCards.find((s) => s.id === setup.speed);
 
   /* 펼쳐진 카드. 둘을 한꺼번에 펼치면 어느 칸에 적는 중인지 헷갈린다 */
+  // [F3][흐름] 펼쳐진 카드 → open / 적는 글자 → youtube, fridge / 후보 → ideas
+  // 다녀오는 중 → busy / 어느 후보를 만드는 중 → making / 잔소리 → error
   const [open, setOpen] = useState<OpenCard>(null);
 
   /* 적고 있는 글자. 카드마다 따로 둔다 — 하나 접었다 펴도 적던 것이 남는다 */
   const [youtube, setYoutube] = useState("");
   const [fridge, setFridge] = useState("");
 
+  /* 냉장고 재료로 찾아 온 요리 후보들. 고르기 전까지 여기 머문다 */
+  const [ideas, setIdeas] = useState<readonly FridgeIdea[]>([]);
+
   /* 다녀오는 중인지. 기다리는 동안 또 누르면 두 번 다녀온다 */
   const [busy, setBusy] = useState(false);
+
+  /* 지금 어느 후보의 레시피를 만드는 중인지. 그 카드의 단추만 바뀐다 —
+     전부 "만드는 중" 이 되면 무엇을 눌렀는지 알 수 없다 */
+  const [making, setMaking] = useState<string | null>(null);
 
   /* 안 됐을 때 칸 밑에 뜨는 말 */
   const [error, setError] = useState<string | null>(null);
 
-  /** 두 길이 똑같이 하는 뒷일 — 되면 장보기로, 안 되면 까닭을 띄운다 */
-  async function run(plan: () => Promise<{ ok: boolean; reason?: string }>) {
+  /** 다녀오기 전에 늘 확인하는 것 — 기다리는 중인지, 키가 있는지 */
+  // [F4][함수] ready(): 다녀오기 전에 늘 확인하는 것(기다리는 중인지·키가 있는지)
+  // 입력: 없음 → 처리: busy 확인 + findSavedKey → 출력: boolean
+  function ready(): boolean {
     // 기다리는 중에 또 누르면 무시한다
-    if (busy) return;
+    if (busy) return false;
 
     // 키가 없으면 다녀올 곳이 없다. 어디로 가야 하는지 알려 준다
     if (!findSavedKey(browserApiKeyStore)) {
       setError(pickCopy.needKey);
-      return;
+      return false;
     }
+
+    return true;
+  }
+
+  /** 지금 키로 만든 게이트웨이. 부를 때마다 새로 만든다 — 키가 바뀔 수 있다 */
+  // [F5][함수] gateway(): 지금 키·속도로 게이트웨이를 하나 만든다
+  // 입력: 없음 → 처리: geminiRecipeGateway(key, modelForSetup(setup)) → 출력: RecipeGateway
+  // 부를 때마다 새로 만든다 — 키나 속도가 바뀔 수 있다
+  function gateway() {
+    // 위에서 이미 키가 있는지 봤다. 없으면 여기까지 안 온다
+    return geminiRecipeGateway(findSavedKey(browserApiKeyStore) ?? "", modelForSetup(setup));
+  }
+
+  /** 레시피를 받아 왔을 때의 뒷일 — 되면 장보기로, 안 되면 까닭을 띄운다 */
+  // [F6][함수] run(plan): 레시피를 받아 왔을 때의 뒷일(유튜브 길이 쓴다)
+  // 입력: plan(부를 유스케이스) → 처리: 실행 후 성공하면 /shop → 출력: 없음(비동기)
+  async function run(plan: () => Promise<{ ok: boolean; reason?: string }>) {
+    if (!ready()) return;
 
     setBusy(true);
     setError(null);
 
+    // [F7][외부] ▷ plan() — planFromYoutube(usecase:F8) 를 부른다 → result
     const result = await plan();
 
     setBusy(false);
 
+    // [F8][분기] result.ok → true: ▷ router.push('/shop') / false: 까닭을 띄우고 머문다
     if (result.ok) {
       // 레시피를 담아 뒀으니 장보기 화면이 꺼내 쓴다
       router.push("/shop");
@@ -83,13 +136,67 @@ export function PickCards({ setup, servings }: Props) {
     }
 
     // 까닭에 맞는 말을 띄우고 이 화면에 머문다
-    setError(planMessages[result.reason as keyof typeof planMessages]);
+    setError(messageFor(result.reason ?? "unreachable"));
   }
 
-  /** 지금 키로 만든 게이트웨이. 부를 때마다 새로 만든다 — 키가 바뀔 수 있다 */
-  function gateway() {
-    // 위에서 이미 키가 있는지 봤다. 없으면 여기까지 안 온다
-    return geminiRecipeGateway(findSavedKey(browserApiKeyStore) ?? "", modelForSetup(setup));
+  /** 냉장고 재료로 만들 수 있는 요리 후보를 찾는다. 첫 걸음 */
+  // [F9][함수] onFindIdeas(): 냉장고 재료로 요리 후보를 찾는다(첫 걸음)
+  // 입력: fridge(적은 재료) + servings → 처리: findFridgeIdeas → 출력: 없음(ideas 를 채운다)
+  async function onFindIdeas() {
+    if (!ready()) return;
+
+    setBusy(true);
+    setError(null);
+
+    /* 앞서 찾아 둔 후보를 먼저 지운다. 안 지우면 새 재료로 찾는 동안
+       옛 재료로 나온 후보가 그대로 앉아 있어서 다 된 줄 안다 */
+    // [F10][흐름] 앞서 찾아 둔 후보를 먼저 지운다(안 지우면 옛 재료의 후보가 앉아 있다)
+    setIdeas([]);
+
+    // [F11][외부] fridge + servings + gateway(F5) ▷ findFridgeIdeas(usecase:F12) → result
+    const result = await findFridgeIdeas(fridge, servings, gateway());
+
+    setBusy(false);
+
+    // [F12][분기] result.ok → true: setIdeas(후보 카드가 뜬다) / false: 까닭을 띄운다
+    if (result.ok) {
+      setIdeas(result.ideas);
+      return;
+    }
+
+    setError(messageFor(result.reason));
+  }
+
+  /** 후보 하나를 골랐을 때. 그 요리만 레시피로 만든다. 두 번째 걸음 */
+  // [F13][함수] onPickIdea(idea): 후보 하나를 골랐을 때(두 번째 걸음)
+  // 입력: idea + fridge(가진 재료) + servings → 처리: planFromFridgeIdea → 출력: 없음
+  async function onPickIdea(idea: FridgeIdea) {
+    if (!ready()) return;
+
+    setBusy(true);
+    setMaking(idea.title);
+    setError(null);
+
+    // [F14][외부] idea.title + fridge + servings + gateway(F5) + store
+    // ▷ planFromFridgeIdea(usecase:F13) → result
+    const result = await planFromFridgeIdea(
+      idea.title,
+      fridge,
+      servings,
+      gateway(),
+      browserRecipeDraftStore,
+    );
+
+    setBusy(false);
+    setMaking(null);
+
+    // [F15][분기] result.ok → true: ▷ router.push('/shop') / false: 까닭을 띄운다
+    if (result.ok) {
+      router.push("/shop");
+      return;
+    }
+
+    setError(messageFor(result.reason));
   }
 
   return (
@@ -199,36 +306,84 @@ export function PickCards({ setup, servings }: Props) {
       )}
 
       {open === "fridge" && (
-        <form
-          className="pk-open"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void run(() =>
-              planFromFridge(fridge, servings, gateway(), browserRecipeDraftStore),
-            );
-          }}
-        >
-          <label className="pk-open-l" htmlFor="pk-fridge">
-            {pickCopy.fridgeLabel}
-          </label>
+        <>
+          <form
+            className="pk-open"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void onFindIdeas();
+            }}
+          >
+            <label className="pk-open-l" htmlFor="pk-fridge">
+              {pickCopy.fridgeLabel}
+            </label>
 
-          <div className="pk-open-row">
-            <input
-              className="pk-open-input"
+            {/* 한 줄짜리 칸에서 여러 줄로 바꿨다. 재료를 대여섯 가지 적으면
+                한 줄 칸에서는 앞이 밀려 나가 무엇을 적었는지 안 보인다 */}
+            <textarea
+              className="pk-open-area"
               id="pk-fridge"
+              rows={3}
               value={fridge}
-              onChange={(e) => setFridge(e.target.value)}
+              onChange={(e) => {
+                setFridge(e.target.value);
+
+                /* 재료를 고치면 앞서 찾은 후보는 더 이상 그 재료의 답이 아니다.
+                   남겨 두면 안 적은 재료로 만든 요리를 고르게 된다 */
+                setIdeas([]);
+              }}
               placeholder={pickCopy.fridgePlaceholder}
               autoComplete="off"
             />
 
-            <button className="btn btn-fill btn-sm" type="submit" disabled={busy}>
-              {busy ? pickCopy.working : pickCopy.find}
+            <button className="btn btn-fill pk-open-go" type="submit" disabled={busy}>
+              {busy && making === null ? pickCopy.working : pickCopy.find}
             </button>
-          </div>
 
-          <p className="pk-open-note">{pickCopy.fridgeNote}</p>
-        </form>
+            <p className="pk-open-note">{pickCopy.fridgeNote}</p>
+          </form>
+
+          {/* 찾아 온 후보들. 고르기 전까지는 아무것도 담아 두지 않는다 */}
+          {ideas.length > 0 && (
+            <section className="pk-ideas">
+              <h3 className="pk-ideas-h">{pickCopy.ideasLabel}</h3>
+
+              <ul className="pk-idea-grid">
+                {ideas.map((idea) => (
+                  // 요리 이름이 서로 안 겹치니 그대로 이름표로 쓴다
+                  <li className="pk-idea" key={idea.title}>
+                    <h4 className="pk-idea-t">{idea.title}</h4>
+
+                    {/* 왜 이걸 골랐는지. 가진 재료를 어떻게 쓰는지가 적혀 있다 */}
+                    {idea.why && <p className="pk-idea-why">{idea.why}</p>}
+
+                    {/* 고를 때 가장 크게 갈리는 두 가지 — 시간과 더 사야 하는 것 */}
+                    <p className="pk-idea-meta">
+                      {/* 시간을 못 받았으면 그 자리를 비운다. 지어내지 않는다 */}
+                      {idea.minutes > 0 && <span>약 {idea.minutes}분</span>}
+
+                      {idea.minutes > 0 && <span aria-hidden="true"> · </span>}
+
+                      {idea.missing.length > 0
+                        ? `${pickCopy.ideaMissing}: ${idea.missing.join(", ")}`
+                        : pickCopy.ideaHaveAll}
+                    </p>
+
+                    <button
+                      className="btn btn-fill btn-sm pk-idea-go"
+                      type="button"
+                      onClick={() => void onPickIdea(idea)}
+                      // 하나를 만드는 동안 다른 것을 또 누르지 못하게 막는다
+                      disabled={busy}
+                    >
+                      {making === idea.title ? pickCopy.ideaWorking : pickCopy.ideaMake}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
       )}
 
       {open === "brand" && (

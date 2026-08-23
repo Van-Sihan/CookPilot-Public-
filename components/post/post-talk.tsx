@@ -1,18 +1,21 @@
 "use client";
 
 /**
- * 글 아래 후기 칸.
+ * 예시 글 아래 댓글 칸.
  *
  * 미리 달려 있는 줄(글마다 정해 둔 것)과 내가 쓴 줄(브라우저에 쌓인 것)을
  * 이어 붙여 보여 준다. 내가 쓴 것이 아래로 간다 — 방금 남긴 줄이 눈에 띄어야 한다.
  *
- * **내가 쓴 후기는 이 브라우저에만 담긴다.** 남에게는 안 보인다.
- * 그 사실을 화면에 적어 두었다. 올라간 줄 알았는데 아니었던 쪽이 더 나쁘다.
+ * **여기 쓴 댓글은 이 브라우저에만 담긴다.** 남에게는 안 보인다.
+ * 예시 글 열여섯 편이 파일에 있고 표에 없어서 댓글을 걸어 둘 자리가 없기 때문이다.
+ * 그 사실을 화면에 적어 두었다 — 올라간 줄 알았는데 아니었던 쪽이 더 나쁘다.
+ * 사람이 쓴 글의 진짜 댓글은 [[live-talk]] 가 맡는다.
  */
 
 import { useCallback, useState, useSyncExternalStore } from "react";
 import { Icon } from "@/components/icons";
 import { browserCommentStore } from "@/lib/adapter/browser-comment-store";
+import { avatarLetter } from "@/lib/domain/avatar";
 import { MAX_COMMENT, type PostComment } from "@/lib/domain/post";
 import { findMyComments, sayOnPost, watchComments } from "@/lib/usecase/discuss-post";
 import { commentMessages, postCopy } from "@/lib/post-copy";
@@ -26,15 +29,20 @@ type Props = {
   me: string;
 };
 
+// [F1][함수] PostTalk({postId, given, me}): 예시 글의 댓글 칸(브라우저에만 쌓인다)
+// 입력: postId + given(글마다 정해 둔 줄) + me(내 이름) → 출력: 화면(JSX)
 export function PostTalk({ postId, given, me }: Props) {
   /* 담아 둔 것이 바뀌면 알려 달라고 부탁하는 함수.
      화면을 다시 그릴 때마다 새로 만들면 부탁했다 취소했다를 되풀이한다 */
+  // [F2][함수] watch(fn): 브라우저 댓글이 바뀌는지 지켜보라고 부탁하는 함수
+  // 입력: fn → 처리: watchComments(usecase:F10) → 출력: 해제 함수
   const watch = useCallback(
     (fn: () => void) => watchComments(browserCommentStore, fn),
     [],
   );
 
   /* 내가 쓴 줄. 브라우저 저장 공간에 있어서 "바깥 값 지켜보기" 로 따라간다 */
+  // [F3][외부] ▷ useSyncExternalStore(watch, findMyComments) → mine (내가 쓴 줄)
   const mine = useSyncExternalStore(
     watch,
     () => findMyComments(browserCommentStore, postId),
@@ -49,24 +57,30 @@ export function PostTalk({ postId, given, me }: Props) {
   const [problem, setProblem] = useState<string | null>(null);
 
   /** 남기기를 눌렀을 때 */
+  // [F4][함수] onSend(event): '댓글 남기기' 를 눌렀을 때
+  // 입력: draft → 처리: sayOnPost(usecase:F1) → 출력: 없음(상태만 바꾼다)
   function onSend(event: React.FormEvent) {
     // 폼이 통째로 새로 고쳐지는 것을 막는다. 그러면 적던 글이 사라진다
     event.preventDefault();
 
+    // [F5][호출] browserCommentStore + postId + draft + me → sayOnPost(usecase:F1) → result
     const result = sayOnPost(browserCommentStore, postId, draft, me);
 
     // 안 됐으면 까닭에 맞는 말을 붙이고 적던 글은 그대로 둔다
+    // [F6][분기] result.ok → false: 까닭을 띄우고 적던 글은 그대로 둠 / true: F7
     if (!result.ok) {
       setProblem(commentMessages[result.problem]);
       return;
     }
 
     // 됐으면 입력칸을 비우고 밑에 떠 있던 말도 거둔다
+    // [F7][흐름] 입력칸을 비우고 잔소리를 치운다. 목록은 F3 이 알아서 다시 그린다
     setDraft("");
     setProblem(null);
   }
 
   /* 다 합친 줄 수. 제목 옆에 숫자를 붙여 준다 */
+  // [F8][흐름] given.length + mine.length → count (제목 옆 숫자)
   const count = given.length + mine.length;
 
   return (
@@ -90,7 +104,6 @@ export function PostTalk({ postId, given, me }: Props) {
           id="pd-write-box"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={postCopy.writePlaceholder}
           rows={3}
           /* 도메인이 정한 위쪽 한계를 입력칸에도 알려 준다.
              막아 두는 것과 별개로, 세다가 넘으면 브라우저가 먼저 알려 준다 */
@@ -129,13 +142,15 @@ export function PostTalk({ postId, given, me }: Props) {
   );
 }
 
-/** 후기 한 줄. 미리 달린 것과 내가 쓴 것이 똑같이 쓴다 */
+/** 댓글 한 줄. 미리 달린 것과 내가 쓴 것이 똑같이 쓴다 */
+// [F9][함수] Line({comment, mine}): 댓글 한 줄
+// 입력: comment + mine(내가 쓴 것인지) → 출력: 화면(JSX)
 function Line({ comment, mine }: { comment: PostComment; mine?: boolean }) {
   return (
     <li className={mine ? "pd-cmt pd-cmt-mine" : "pd-cmt"}>
       {/* 사진이 없으니 이름 첫 글자를 딴 동그란 표시로 대신한다 */}
       <span className="pd-cmt-mark" aria-hidden="true">
-        {comment.who.slice(0, 1)}
+        {avatarLetter(comment.who)}
       </span>
 
       <div className="pd-cmt-body">

@@ -20,11 +20,16 @@ type Props = {
   name: string;
 };
 
+// [F1][함수] AccountForm({email, name}): 닉네임 바꾸는 칸
+// 입력: email(보여 주기만) + name(지금 닉네임) → 처리: renameAction 에 넘김 → 출력: 화면(JSX)
 export function AccountForm({ email, name }: Props) {
+  // [F2][흐름] useActionState(renameAction) → state · action · pending
+  // 폼 제출 → ▷ renameAction(app/actions/post.ts:F7) → renameMe(usecase:F1)
   const [state, action, pending] = useActionState(renameAction, emptyRenameState);
 
   /* 적고 있는 이름. 서버가 돌려준 값으로 덮지 않는다 —
      덮으면 사람이 고치던 글자가 사라진다 */
+  // [F3][흐름] 입력칸 글자 → typed (서버가 준 값으로 덮지 않는다. 덮으면 고치던 글이 사라진다)
   const [typed, setTyped] = useState(name);
 
   return (

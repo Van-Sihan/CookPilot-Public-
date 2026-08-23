@@ -18,11 +18,15 @@ const STORAGE_KEY = "cookpilot.chat-id";
 const listeners = new Set<() => void>();
 
 /** 명단에 있는 모두에게 한 번씩 알린다 */
+// [F1][함수] notify(): 명단에 있는 모두에게 '바뀌었다' 고 알린다
 function notify() {
   listeners.forEach((fn) => fn());
 }
 
+// [F2][함수] browserChatIdStore: ChatIdStore 약속을 localStorage 로 채운다
+// 로그인이 없어서 '내 대화' 를 가리는 방법이 이 id 하나다
 export const browserChatIdStore: ChatIdStore = {
+  // [F3][함수] load(): 이어 붙일 대화 id 를 꺼낸다 → 출력: id 또는 null
   load() {
     // 서버에서 화면을 그리는 동안에는 window 가 아예 없다
     if (typeof window === "undefined") return null;
@@ -30,6 +34,7 @@ export const browserChatIdStore: ChatIdStore = {
     return window.localStorage.getItem(STORAGE_KEY);
   },
 
+  // [F4][함수] save(id): 새로 열린 대화 id 를 담는다 → 처리: localStorage 기록 후 notify
   save(id: string) {
     // 저장을 막아 둔 브라우저에서는 여기서 오류가 나고, 그건 유스케이스가 받아 준다
     window.localStorage.setItem(STORAGE_KEY, id);
@@ -38,6 +43,7 @@ export const browserChatIdStore: ChatIdStore = {
     notify();
   },
 
+  // [F5][함수] clear(): 담아 둔 대화 id 를 지운다 (대화 비우기)
   clear() {
     // 빈 글자로 덮지 않고 아예 지운다. 남아 있으면 "대화가 있다" 로 잘못 읽힌다
     window.localStorage.removeItem(STORAGE_KEY);
@@ -45,6 +51,7 @@ export const browserChatIdStore: ChatIdStore = {
     notify();
   },
 
+  // [F6][함수] subscribe(onChange): 바뀌면 알려 달라고 명단에 올린다 → 출력: 해제 함수
   subscribe(onChange: () => void) {
     // 같은 탭에서 생긴 변화를 받을 수 있게 명단에 올린다
     listeners.add(onChange);

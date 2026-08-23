@@ -79,6 +79,10 @@ export const TITLE_LEN = 40;
  *
  * chatId 가 없으면 새 대화를 연다. 있으면 그 대화에 이어 붙인다.
  */
+// [F1][함수] askKitchen(raw, history, chain, log, chatId): 챗봇에 묻고 답을 받는다
+// 입력: raw(물음) + history(지난 대화) + chain(RagChain) + log(ChatLog) + chatId
+// 처리: 도메인 검사 → 대화 열기/이어붙이기 → 물음 기록 → RAG 실행 → 답 기록
+// 출력: AskResult (비동기)
 export async function askKitchen(
   raw: string,
   history: readonly ChatTurn[],
@@ -87,24 +91,33 @@ export async function askKitchen(
   chatId: string | null,
 ): Promise<AskResult> {
   // 받아 줄 만한 물음인지는 도메인이 본다
+  // [F2][호출] raw → checkQuestion(domain/ask) → read
   const read = checkQuestion(raw);
 
   // 안 되면 까닭만 그대로 올려 보낸다. 무슨 말로 보여 줄지는 화면이 고른다
+  // [F3][분기] read.ok → false: 까닭 반환(모델을 안 부름) / true: F4
   if (!read.ok) return { ok: false, reason: read.problem };
 
   /* 대화가 없으면 연다. 이름은 첫 물음을 잘라 쓴다 —
      "새 대화" 만 늘어놓으면 나중에 목록에서 서로 구별이 안 된다 */
+  // [F4][분기] chatId 있음 → 그대로 사용 / 없음 → F5
+  // [F5][외부] 첫 물음 앞머리 → log.open() ▷ supabase chats insert → id
   const id = chatId ?? (await log.open(read.text.slice(0, TITLE_LEN)));
 
   // 물음을 먼저 담는다. 답을 못 받아도 물음은 남아야 한다
+  // [F6][외부] {role:'user', content} → log.add() ▷ supabase messages insert (답보다 먼저 남긴다)
   if (id) await log.add(id, { role: "user", content: read.text });
 
   /* 지난 대화는 뒤쪽 몇 마디만. 방금 한 물음은 따로 넘기므로 여기 없다 —
      같이 넣으면 모델이 같은 물음을 두 번 받는다 */
+  // [F7][호출] history → recentTurns(domain/ask) → 최근 6마디
+  // [F7][외부] read.text + 최근 대화 → chain.run() ▷ 파인콘 검색 + 제미나이 생성 → answer
   const answer = await chain.run(read.text, recentTurns(history));
 
+  // [F8][분기] answer.ok → false: 까닭 반환(물음은 이미 남아 있다) / true: F9
   if (!answer.ok) return { ok: false, reason: answer.reason };
 
+  // [F9][흐름] answer.text + answer.sources → turn(ChatTurn)
   const turn: ChatTurn = {
     role: "assistant",
     content: answer.text,
@@ -112,8 +125,10 @@ export async function askKitchen(
   };
 
   // 답도 담는다. 담기지 않아도 화면에는 보여 준다
+  // [F10][외부] turn → log.add() ▷ supabase messages insert (실패해도 화면에는 보여 준다)
   if (id) await log.add(id, turn);
 
+  // [F11][반환] {ok:true, turn, chatId} → app/api/chat/route.ts → ask-shell 화면으로 전달
   return { ok: true, turn, chatId: id };
 }
 
@@ -138,6 +153,8 @@ export type ChatIdStore = {
 };
 
 /** 담아 둔 대화 id 를 꺼낸다 */
+// [F12][함수] findChatId(store): 이어 붙일 대화 id 를 꺼낸다
+// 입력: store → 처리: store.load() ▷ localStorage 읽기 → 출력: id 또는 null
 export function findChatId(store: ChatIdStore): string | null {
   try {
     return store.load();
@@ -148,6 +165,8 @@ export function findChatId(store: ChatIdStore): string | null {
 }
 
 /** 대화 id 를 담아 둔다 */
+// [F13][함수] keepChatId(store, id): 새로 열린 대화 id 를 담아 둔다
+// 입력: store + id → 처리: store.save() ▷ localStorage 기록 → 출력: 없음
 export function keepChatId(store: ChatIdStore, id: string): void {
   try {
     store.save(id);
@@ -157,6 +176,8 @@ export function keepChatId(store: ChatIdStore, id: string): void {
 }
 
 /** 담아 둔 대화 id 를 버린다 */
+// [F14][함수] forgetChatId(store): 담아 둔 대화 id 를 버린다 (대화 비우기)
+// 입력: store → 처리: store.clear() ▷ localStorage 삭제 → 출력: 없음
 export function forgetChatId(store: ChatIdStore): void {
   try {
     store.clear();
@@ -166,6 +187,8 @@ export function forgetChatId(store: ChatIdStore): void {
 }
 
 /** 대화 id 가 바뀌는지 지켜본다 */
+// [F15][함수] watchChatId(store, onChange): 대화 id 가 바뀌는지 지켜본다
+// 입력: store + onChange → 처리: store.subscribe() → 출력: '그만 보기' 함수
 export function watchChatId(store: ChatIdStore, onChange: () => void) {
   return store.subscribe(onChange);
 }

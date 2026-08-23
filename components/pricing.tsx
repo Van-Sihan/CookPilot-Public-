@@ -2,6 +2,8 @@ import Link from "next/link";
 import { plans } from "@/lib/site-content";
 
 /** 요금제 세 장. 화면이 좁으면 가장 권하는 요금제가 맨 위로 올라온다. */
+// [F1][함수] Pricing(): 요금제 카드 묶음
+// 입력: 없음(site-content 의 plans) → 출력: 화면(JSX)
 export function Pricing() {
   return (
     // 위쪽 메뉴의 "요금제" 를 누르면 이 이름표를 찾아 내려온다
@@ -19,6 +21,7 @@ export function Pricing() {
         {/* 요금제 카드를 나란히 늘어놓는 틀 */}
         <div className="plans">
           {/* 요금제 이름이 서로 겹치지 않으니 그걸 이름표로 쓴다 */}
+          {/* [F2][반복] plans 를 훑어 요금제 카드를 그린다 */}
           {plans.map((p) => (
             <article
               // 가장 권하는 요금제만 테두리와 놓이는 자리가 달라진다
@@ -41,6 +44,7 @@ export function Pricing() {
               {/* 이 요금제로 할 수 있는 일들 */}
               <ul>
                 {/* 글이 서로 겹치지 않으니 그대로 이름표로 쓴다 */}
+                {/* [F3][반복] 카드마다 perks 를 훑어 딸린 줄을 그린다 (F2 안의 반복) */}
                 {p.perks.map((perk) => (
                   <li key={perk}>{perk}</li>
                 ))}
