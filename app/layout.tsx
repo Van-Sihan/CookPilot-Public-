@@ -64,11 +64,17 @@ const nanumGothicCoding = Nanum_Gothic_Coding({
    가운데 단계를 둔 까닭 — 처음 배포할 때는 도메인이 정해지기 전이라
    NEXT_PUBLIC_SITE_URL 을 미리 적어 둘 수가 없다. 그 사이에도 링크 미리보기가
    localhost 를 가리키지 않게 하는 장치다 */
+/* 환경 변수는 '없음' 과 '빈 값' 이 다르다. 버셀은 .env.example 을 읽어 빈 칸을
+   미리 만들어 두는데, 그것을 지우지 않고 배포하면 값이 빈 문자열로 들어온다.
+   ?? 는 null·undefined 만 걸러서 빈 문자열이 그대로 통과하고, 그러면
+   new URL("") 이 터져 모든 화면이 500 이 된다. 빈 값도 '없음' 으로 본다 */
+const pickEnv = (value: string | undefined) => value?.trim() || undefined;
+
 // 버셀이 배포할 때 스스로 넣어 주는 운영 도메인. 규약(https://)이 빠져 있다
-const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+const vercelHost = pickEnv(process.env.VERCEL_PROJECT_PRODUCTION_URL);
 // 앞에서부터 있는 값을 고른다. 버셀 값에는 규약을 붙여야 URL 로 읽힌다
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ??
+  pickEnv(process.env.NEXT_PUBLIC_SITE_URL) ??
   (vercelHost ? `https://${vercelHost}` : "http://localhost:3000");
 
 export const metadata: Metadata = {

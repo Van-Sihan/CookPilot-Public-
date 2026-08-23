@@ -28,8 +28,10 @@ function readEnv(): { url: string; key: string } {
 
   /* 공개해도 되는 열쇠. 수파베이스가 이름을 바꾸는 중이라 둘 다 받아 준다.
      교재 188쪽도 같은 이야기를 한다 — Publishable Key 와 Anon Key 는 서로 호환된다 */
+  /* ?? 가 아니라 || 를 쓴다. 버셀에 빈 칸으로 등록된 변수는 undefined 가 아니라
+     빈 문자열로 들어와서, ?? 로는 걸러지지 않고 그대로 열쇠 자리에 앉는다 */
   const key =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // 둘 중 하나라도 비었으면 무엇이 없는지 이름을 대며 멈춘다

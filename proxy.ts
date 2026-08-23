@@ -29,8 +29,10 @@ export async function proxy(request: NextRequest) {
 
   // 주소와 열쇠. 없으면 갱신은 건너뛰고 요청만 통과시킨다
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  /* ?? 가 아니라 || 를 쓴다. 버셀에 빈 칸으로 등록된 변수는 undefined 가 아니라
+     빈 문자열로 들어와서, ?? 로는 걸러지지 않고 그대로 열쇠 자리에 앉는다 */
   const key =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   /* 열쇠가 아직 없다고 사이트 전체를 멈추면 안 된다.

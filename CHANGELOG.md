@@ -13,6 +13,41 @@
 
 ---
 
+## 2026-08-24 — 빈 환경 변수로 배포가 깨지는 것을 막음
+
+**요청**
+
+버셀 Import 화면에서 붙여넣기는 됐는데 위에 빈 항목 7개가 있다. 어떻게 하나?
+
+**한 일**
+
+- 원인 — 어제 커밋한 `.env.example` 을 버셀이 읽고 **빈 칸을 미리 만들어 뒀다.**
+  붙여넣은 4개가 그 위에 더해져 같은 이름이 두 줄씩 생겼다
+- 빈 줄을 지우는 것이 정답이지만, **같은 실수에 배포가 통째로 깨지지 않도록**
+  환경 변수를 읽는 자리 다섯 곳을 고쳤다
+  - `app/layout.tsx` — `pickEnv()` 를 두어 빈 값을 `undefined` 로 바꾼다
+  - `lib/adapter/supabase-server-client.ts` · `browser-cover-upload.ts` ·
+    `browser-avatar-upload.ts` · `proxy.ts` — `??` 를 `||` 로
+- `docs/deploy/vercel.md` 3단계에 이 함정을 적었다
+
+**건드린 파일** — 고침: `app/layout.tsx` · `proxy.ts` ·
+`lib/adapter/{supabase-server-client,browser-cover-upload,browser-avatar-upload}.ts` ·
+`docs/deploy/vercel.md`
+
+**확인**
+
+- `npm run build` 통과. TypeScript 오류 0, 라우트 21개
+- 환경 변수를 `??` 로 읽는 자리가 **0개** 남았다
+
+**왜 위험했나**
+
+`??` 는 `null` · `undefined` 만 걸러 내고 **빈 문자열은 통과시킨다.**
+`NEXT_PUBLIC_SITE_URL` 이 빈 문자열이면 `new URL("")` 이 던져지고,
+`metadataBase` 는 루트 레이아웃에서 계산되므로 **모든 화면이 500** 이 된다.
+수파베이스 열쇠 세 자리도 같은 방식으로 빈 문자열이 열쇠 자리에 앉는다.
+
+---
+
 ## 2026-08-24 — 마이그레이션 적용 확인, 배포 문서 5단계 완료 처리
 
 **요청**

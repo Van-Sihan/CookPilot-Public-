@@ -29,8 +29,10 @@ export type UploadResult =
 // 입력: process.env(NEXT_PUBLIC_*) → 처리: 값이 없으면 던짐 → 출력: SupabaseClient
 function client() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  /* ?? 가 아니라 || 를 쓴다. 버셀에 빈 칸으로 등록된 변수는 undefined 가 아니라
+     빈 문자열로 들어와서, ?? 로는 걸러지지 않고 그대로 열쇠 자리에 앉는다 */
   const key =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // 값이 없으면 여기서 멈춘다. 없는 채로 부르면 "fetch failed" 만 나온다
