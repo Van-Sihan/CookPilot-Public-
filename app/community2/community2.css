@@ -1,0 +1,363 @@
+/* =====================================================================
+   COMMUNITY 2 — design/blogmain.png 을 그대로 옮긴 것.
+
+   우리 디자인 규칙(숯불 팔레트, 사진 안 쓰기, 한국어 문안)을 일부러 다 어긴다.
+   /community 와 나란히 놓고 견주어 보려고 만든 화면이라, 시안에서 눈으로 뽑아낸
+   색과 자리 값을 그대로 적었다. 여기 있는 색은 globals.css 의 변수와 상관없다 —
+   시안 픽셀에서 직접 집어 온 값이라 이름이 아니라 숫자로 남겨 둔다.
+
+   시안은 가로 1213px 로 그려졌다. 아래 자리 값은 거기서 잰 것이고,
+   내용 기둥은 92px ~ 1120px, 곧 1028px 이다.
+   ===================================================================== */
+
+/* 이 화면에서 쓰는 색. 전부 시안 픽셀에서 집어 온 값이다.
+   .c2 안에만 걸어 둬서 다른 화면으로 새어 나가지 않게 한다 */
+.c2 {
+  --c2-bg: #0B0A09;       /* 페이지 바탕 */
+  --c2-surface: #131110;  /* 카드·검색칸 바탕 */
+  --c2-raise: #1A1716;    /* 배지와 고른 탭처럼 한 단계 뜬 면 */
+  --c2-line: #292422;     /* 카드 테두리 */
+  --c2-line-2: #201C1A;   /* 카드 안쪽 구분선 */
+  --c2-ink: #FFF7EA;      /* 제목 글자 */
+  --c2-ink-2: #B4A89E;    /* 본문 글자 */
+  --c2-ink-3: #93887F;    /* 흐린 글자 */
+  --c2-salmon: #FFB5A8;   /* 로고와 강조 */
+  --c2-gold: #F4C150;     /* DESSERT 배지에만 */
+
+  /* 시안이 쓴 글꼴은 Instrument Serif 다 — design/index_dark_2.html 의 구글 폰트
+     주소에 그렇게 적혀 있고, 글자 폭을 재 보니 그 값과 맞는다.
+     이 글꼴은 굵기가 400 하나뿐이라, 시안의 굵은 제목은 브라우저가 400 을 뭉개서
+     만든 가짜 굵게다. 그래서 여기서도 굵기 700 을 그냥 지정한다 —
+     진짜 굵은 글꼴을 따로 받아 오면 오히려 시안과 달라진다.
+     app/layout.tsx 가 이미 문서 전체에 걸어 둔 것을 그대로 가져다 쓴다 */
+  --c2-serif: var(--font-instrument-serif), Georgia, serif;
+  /* 소개글과 카드 요약은 제목보다 30%쯤 넓은 보통 폭 세리프다. 글자 폭을 재서 알아냈다 */
+  --c2-body: var(--font-noto-serif), Georgia, serif;
+  --c2-mono: var(--font-roboto-mono), ui-monospace, monospace;
+
+  min-height: 100dvh;
+  background: var(--c2-bg);
+  color: var(--c2-ink-2);
+  font-family: var(--c2-serif);
+}
+
+/* 내용 기둥. 시안에서 잰 1028px 를 그대로 쓴다 */
+.c2-wrap {
+  /* 시안의 내용 폭은 1028px 다. 좌우 여백 24px 을 더해서 잡아야 속이 1028 이 된다 */
+  max-width: 1076px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ---------- 머리말 ---------- */
+/* 시안의 머리말은 가운데가 밝고 양끝이 어두운 띠다. 가로로 번지는 빛 하나로 만든다 */
+.c2-top {
+  height: 113px;
+  border-bottom: 1px solid #1C1917;
+  background:
+    radial-gradient(52rem 9rem at 50% 50%, rgba(220, 190, 180, 0.15), transparent 72%),
+    #141312;
+}
+/* 머리말 안쪽은 기둥보다 넓게 벌어져 있다. 로고는 왼쪽 끝, 아이콘은 오른쪽 끝 */
+.c2-top-in {
+  height: 100%;
+  max-width: 1213px;
+  margin: 0 auto;
+  padding: 0 90px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+/* 시안의 로고는 그림 없이 글씨뿐이다. 우리 화면과 가장 크게 다른 점이라 그대로 둔다 */
+.c2-logo {
+  font-family: var(--c2-serif);
+  /* 시안의 로고는 글자 높이(대문자+내림)가 46px 이다. 거기서 거꾸로 구한 크기 */
+  font-weight: 700;
+  font-size: 50px;
+  line-height: 1;
+  letter-spacing: -0.005em;
+  color: var(--c2-salmon);
+  margin: 0;
+}
+.c2-top-icons {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  color: var(--c2-ink-3);
+}
+
+/* ---------- 큰 제목과 검색 ---------- */
+/* 제목 뒤에서 위로 올라오는 붉은 열기. 시안 배경이 여기서만 #20120C 로 뜬다 */
+.c2-hero {
+  padding: 96px 0 0;
+  text-align: center;
+  background: radial-gradient(30rem 22rem at 50% 26%, rgba(185, 68, 50, 0.13), transparent 64%);
+}
+.c2-title {
+  font-family: var(--c2-serif);
+  /* 시안에서 "Community" 는 폭 186px, 높이 44px 였다. 그 값이 나오는 크기가 48px 다 */
+  font-weight: 700;
+  font-size: 48px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--c2-ink);
+  margin: 0;
+}
+/* 시안의 소개글은 영어 두 줄이다. 줄이 그대로 끊기도록 너비를 잡아 둔다 */
+.c2-lead {
+  /* 시안의 첫 줄은 428px 에서 "pilots" 뒤로 끊긴다. 그 자리에서 끊기는 너비 */
+  /* 시안은 "…culinary pilots" 뒤에서 줄이 끊긴다. "worldwide." 까지는 안 들어가고
+     "pilots" 까지는 들어가는 너비가 470px 다 */
+  max-width: 470px;
+  margin: 22px auto 0;
+  font-family: var(--c2-body);
+  font-size: 14.5px;
+  /* 시안의 두 줄 사이가 29px 이었다 */
+  line-height: 2;
+  color: var(--c2-ink-2);
+}
+
+/* 검색칸. 시안에서 잰 638px 를 그대로 쓴다 */
+.c2-search {
+  position: relative;
+  width: min(100%, 638px);
+  margin: 34px auto 0;
+}
+.c2-search-ico {
+  position: absolute;
+  left: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--c2-ink-3);
+  pointer-events: none;
+}
+.c2-search input {
+  width: 100%;
+  height: 52px;
+  padding: 0 20px 0 54px;
+  background: var(--c2-surface);
+  border: 1px solid #221E1C;
+  border-radius: 4px;
+  color: var(--c2-ink);
+  font-family: var(--c2-body);
+  font-size: 15px;
+}
+.c2-search input::placeholder { color: var(--c2-ink-3); }
+.c2-search input:focus { outline: none; border-color: #3A3230; }
+
+/* ---------- 왼쪽 기둥 + 카드 ---------- */
+/* 시안에서 잰 값 그대로 — 기둥 228, 사이 23, 카드 777 */
+.c2-body {
+  display: grid;
+  grid-template-columns: 228px 1fr;
+  gap: 23px;
+  align-items: start;
+  padding: 142px 0 0;
+}
+
+.c2-side-head {
+  font-family: var(--c2-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c2-ink-3);
+  margin: 0 0 12px;
+}
+.c2-tabs { list-style: none; margin: 0; padding: 0; }
+.c2-tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 15px 18px;
+  border-left: 4px solid transparent;
+  font-family: var(--c2-serif);
+  font-size: 18px;
+  color: var(--c2-ink-2);
+}
+.c2-tab:hover { color: var(--c2-ink); }
+/* 지금 서 있는 탭. 왼쪽에 살구빛 띠가 서고 면이 한 단계 뜬다 */
+.c2-tab.on {
+  font-weight: 700;
+  color: var(--c2-salmon);
+  border-left-color: #D09288;
+  background: var(--c2-raise);
+}
+.c2-tab-ico { display: flex; color: var(--c2-salmon); }
+
+/* 시안은 탭 묶음과 이 묶음 사이를 아주 넓게 벌려 놓았다 */
+.c2-side-block { margin-top: 92px; }
+.c2-live {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--c2-mono);
+  font-size: 13px;
+  color: var(--c2-ink-3);
+  margin: 0;
+}
+.c2-live-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--c2-salmon);
+}
+
+.c2-list { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+
+/* ---------- 큰 카드 ---------- */
+/* 사진이 왼쪽 60%, 글이 오른쪽 40%. 시안에서 465 : 309 였다 */
+.c2-feature {
+  display: grid;
+  grid-template-columns: 60% 1fr;
+  background: var(--c2-surface);
+  border: 1px solid var(--c2-line);
+  overflow: hidden;
+}
+.c2-feature-photo {
+  position: relative;
+  min-height: 319px;
+}
+/* 사진이 칸에 꽉 차게 잘라 넣는다. 시안 비율과 칸 비율이 조금 달라도 여백이 안 생긴다 */
+.c2-feature-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.c2-feature-body {
+  display: flex;
+  flex-direction: column;
+  padding: 30px 30px 22px;
+}
+
+.c2-badges { display: flex; gap: 10px; margin: 0 0 22px; }
+.c2-badge {
+  font-family: var(--c2-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  padding: 6px 11px;
+  background: var(--c2-raise);
+  border: 1px solid #2E2A28;
+  border-radius: 3px;
+  color: var(--c2-ink-3);
+}
+/* 시안은 분류마다 배지 색이 다르다. 대표 글은 살구빛, 디저트는 금빛 */
+.c2-badge.prime { color: var(--c2-salmon); border-color: #4A3330; }
+.c2-badge.gold { color: var(--c2-gold); border-color: #4A3F22; }
+
+.c2-card-title {
+  font-family: var(--c2-serif);
+  /* 시안의 두 줄은 32px, 줄 간격 38px 이었다 */
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1.19;
+  letter-spacing: -0.01em;
+  color: var(--c2-ink);
+  margin: 0;
+}
+/* 요약이 남는 자리를 다 먹어서, 글쓴이 줄이 늘 카드 밑에 붙는다 */
+.c2-card-sum {
+  flex: 1;
+  font-family: var(--c2-body);
+  /* 시안의 요약은 세 줄이 28px 간격으로 놓인다 */
+  font-size: 14px;
+  line-height: 2;
+  color: var(--c2-ink-3);
+  margin: 18px 0 0;
+}
+/* 글쓴이 줄 위의 가는 선 */
+.c2-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 18px;
+  margin-top: 18px;
+  border-top: 1px solid var(--c2-line-2);
+  font-family: var(--c2-mono);
+  font-size: 13px;
+  color: var(--c2-ink-3);
+}
+/* 이름 첫 글자를 딴 동그란 딱지 */
+.c2-avatar {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #4A3330;
+  border-radius: 50%;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--c2-salmon);
+}
+.c2-hearts { margin-left: auto; display: flex; align-items: center; gap: 7px; }
+
+/* ---------- 작은 카드 둘 ---------- */
+.c2-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 23px; }
+.c2-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--c2-surface);
+  border: 1px solid var(--c2-line);
+  overflow: hidden;
+}
+/* 시안의 이 자리는 사진이 아니라 휴대폰 앱 화면을 찍은 그림이다.
+   그대로 옮기는 것이 목적이라 잘라 내지 않고 통째로 둔다 */
+.c2-card-shot { display: block; }
+.c2-card-shot img { width: 100%; height: auto; }
+.c2-card-body { display: flex; flex-direction: column; padding: 24px 22px 18px; }
+.c2-card-body .c2-card-title { font-size: 23px; }
+.c2-card-body .c2-badges { margin-bottom: 20px; }
+
+/* ---------- 꼬리말 ---------- */
+.c2-foot {
+  margin-top: 196px;
+  border-top: 1px solid #1C1917;
+}
+.c2-foot-in {
+  max-width: 1213px;
+  margin: 0 auto;
+  padding: 38px 90px 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.c2-foot-logo {
+  font-family: var(--c2-serif);
+  font-weight: 900;
+  font-size: 15px;
+  color: var(--c2-salmon);
+  margin: 0;
+}
+.c2-foot-copy {
+  font-family: var(--c2-mono);
+  font-size: 13px;
+  color: var(--c2-ink-3);
+  margin: 0 auto 0 26px;
+}
+.c2-foot nav { display: flex; gap: 26px; }
+.c2-foot nav a {
+  font-family: var(--c2-mono);
+  font-size: 13px;
+  color: var(--c2-ink-3);
+}
+.c2-foot nav a:hover { color: var(--c2-salmon); }
+
+/* 시안은 넓은 화면 하나뿐이라 좁은 화면 규칙이 없다.
+   그래도 화면이 깨져 보이면 견주기가 어려우니 최소한만 접어 준다 */
+@media (max-width: 900px) {
+  .c2-body { grid-template-columns: 1fr; gap: 40px; padding-top: 80px; }
+  .c2-feature { grid-template-columns: 1fr; }
+  .c2-pair { grid-template-columns: 1fr; }
+  .c2-side-block { margin-top: 40px; }
+  .c2-title { font-size: 40px; }
+  .c2-top-in, .c2-foot-in { padding-left: 24px; padding-right: 24px; }
+  .c2-logo { font-size: 32px; }
+  .c2-foot { margin-top: 90px; }
+}

@@ -1,5 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif, Noto_Serif_KR, Roboto_Mono } from "next/font/google";
+import {
+  Instrument_Serif,
+  Nanum_Gothic_Coding,
+  Noto_Serif_KR,
+  Roboto_Mono,
+} from "next/font/google";
 import { site } from "@/lib/site-content";
 import "./globals.css";
 
@@ -39,7 +44,29 @@ const robotoMono = Roboto_Mono({
   display: "swap",
 });
 
+/* Roboto Mono 는 라틴만 받아 와서 한글 글자가 없다. 그 자리를 이 글꼴이 메운다.
+   흔한 한글 글꼴을 쓰면 소제목이 본문과 똑같아 보이는데, 이건 한글도 글자마다
+   폭이 같은 고정폭이라 라틴 쪽 Roboto Mono 와 결이 이어진다.
+   한글은 조각 파일이 수백 개라 Noto Serif KR 과 마찬가지로 미리 받지 않는다. */
+const nanumGothicCoding = Nanum_Gothic_Coding({
+  // CSS 에서 var(--font-nanum-coding) 이라고 부를 수 있게 이름을 지어 둔다
+  variable: "--font-nanum-coding",
+  // 이 글꼴에 있는 굵기는 둘뿐이다. 작은 소제목은 굵은 쪽을 쓴다
+  weight: ["400", "700"],
+  // 쓰이는 글자 조각만 그때그때 받아 온다
+  preload: false,
+  // 늦게 와도 글씨는 먼저 보이게 한다
+  display: "swap",
+});
+
 export const metadata: Metadata = {
+  /* 링크 미리보기 그림의 주소를 절대 주소로 만들 때 쓰는 뿌리.
+     글마다 요리 사진이 붙는데, "/food/ribeye.jpg" 만 내보내면 카카오톡이나
+     슬랙이 어느 서버의 그림인지 몰라 아무것도 못 띄운다.
+     배포한 주소를 환경 변수로 넣어 주면 그것을 쓰고, 없으면 개발용 주소로 둔다 */
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  ),
   title: {
     // 홈에서 보이는 제목. 한글 이름과 영어 이름을 같이 둬서 어느 쪽으로 검색해도 걸리게 한다
     default: `${site.nameKo} ${site.name} — ${site.tagline}`,
@@ -91,8 +118,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       // 한국어 문서라고 알려 준다. 그래야 화면을 읽어 주는 기계가 한국어로 읽는다
       lang="ko"
-      // 위에서 만든 글꼴 이름 세 개를 문서 전체에 걸어 둔다. 그래야 CSS 어디서든 쓸 수 있다
-      className={`${instrumentSerif.variable} ${notoSerifKr.variable} ${robotoMono.variable}`}
+      // 위에서 만든 글꼴 이름 네 개를 문서 전체에 걸어 둔다. 그래야 CSS 어디서든 쓸 수 있다
+      className={`${instrumentSerif.variable} ${notoSerifKr.variable} ${robotoMono.variable} ${nanumGothicCoding.variable}`}
     >
       <head>
         {/* 본문 글꼴인 Pretendard 는 구글 글꼴 목록에 없어서 다른 곳에서 받아 온다 */}

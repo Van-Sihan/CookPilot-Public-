@@ -7,6 +7,7 @@
  * 유스케이스를 한 번 부르고, 그 대답에 따라 화면만 갈아 끼운다.
  */
 
+import Link from "next/link";
 import { useCallback, useState, useSyncExternalStore } from "react";
 import { Icon } from "@/components/icons";
 import { browserApiKeyStore } from "@/lib/adapter/browser-api-key-store";
@@ -112,10 +113,18 @@ export function ApiKeyForm() {
             {maskApiKey(saved)}
           </p>
 
-          {/* 다음 걸음인 "고르기" 화면을 아직 안 만들어서, 눌리지 않게 잠가 둔다 */}
-          <button className="btn btn-fill start-go" type="button" disabled>
-            고르기로 넘어가기 (준비 중)
-          </button>
+          {/* 키를 넣었으면 홈으로 보낸다. 홈에서 마이크를 누르면 요리로 이어진다 —
+              키 화면에서 곧바로 목소리 고르기로 몰아넣으면, 둘러볼 틈 없이
+              관문만 이어지는 꼴이 된다.
+              단추처럼 보이지만 실제로는 링크다 — 새 탭으로 열거나 주소를 복사할 수 있어야 한다 */}
+          <Link className="btn btn-fill start-go" href="/community">
+            홈으로 가기
+          </Link>
+
+          {/* 곧바로 요리부터 하고 싶은 사람을 위한 지름길 */}
+          <Link className="start-change" href="/start/model">
+            바로 요리 시작하기 →
+          </Link>
 
           {/* 다른 키로 바꾸는 길. 단추처럼 크게 두면 헷갈려서 글씨처럼 작게 둔다 */}
           <button className="start-change" type="button" onClick={onChangeKey}>

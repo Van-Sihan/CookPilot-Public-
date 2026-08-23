@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { LoginFoot, LoginTop } from "@/components/login/login-chrome";
 import { LoginForm } from "@/components/login/login-form";
 import { loginCopy } from "@/lib/site-content";
@@ -32,10 +33,10 @@ export default function LoginPage() {
           {/* 이 화면에서 진짜 해야 할 일 */}
           <LoginForm />
 
-          {/* 카드 밖에 두어 "지금 할 일" 과 헷갈리지 않게 한다.
-              아직 가입 화면이 없어 링크는 자리만 잡아 둔다 */}
+          {/* 카드 밖에 두어 "지금 할 일" 과 헷갈리지 않게 한다 */}
           <p className="login-signup">
-            {loginCopy.noAccount} <a href="#">{loginCopy.signUp}</a>
+            {loginCopy.noAccount}{" "}
+            <Link href="/signup">{loginCopy.signUp}</Link>
           </p>
         </div>
       </main>

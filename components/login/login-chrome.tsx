@@ -9,6 +9,7 @@
  */
 
 import Link from "next/link";
+import { Logo } from "@/components/brand";
 import { Icon } from "@/components/icons";
 import { loginFooterLinks, loginFootNote, site } from "@/lib/site-content";
 
@@ -18,6 +19,9 @@ export function LoginTop() {
     <header className="login-top">
       {/* 로고를 누르면 소개 페이지로 돌아간다. 나가는 길을 하나는 남겨 둬야 한다 */}
       <Link className="login-logo" href="/" aria-label={`${site.name} 홈`}>
+        {/* 이름 글씨 왼쪽에 늘 붙는 로고. 어느 화면에 가도 같은 자리에 있어야
+            "여기가 아직 쿡파일럿" 이라는 것이 한눈에 들어온다 */}
+        <Logo size={24} id="login-top" />
         {site.name}
       </Link>
 

@@ -18,8 +18,27 @@ Claude Code 로 이어서 작업하실 때는 그냥 `claude` 를 실행하세�
 저장소에 들어 있어서, 새 세션이 프로젝트 규칙과 지금까지의 작업 내역을
 알아서 읽습니다. 대화가 아니라 저장소가 맥락을 들고 있습니다.
 
-환경변수는 아직 쓰지 않습니다. `.env` 파일을 따로 만들 것 없습니다.
 Node 20 이상이 필요합니다.
+
+### 환경 변수
+
+로그인·회원가입이 수파베이스에 붙어 있어서 열쇠가 필요합니다. `.env.local` 은
+깃에 올라가지 않으므로(`.gitignore` 의 `.env*`) **새 기계마다 직접 만들어야
+합니다.** 프로젝트 최상단, `package.json` 옆에 두세요.
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+두 값은 수파베이스 대시보드 맨 위 **[Connect]** 에서 복사합니다. 열쇠 이름이
+`ANON_KEY` 로 나올 때도 있는데 둘은 호환되고, 코드가 양쪽 다 받아 줍니다.
+
+이 파일이 없어도 소개 페이지와 `/start` 는 그대로 돕니다. 로그인만 안 됩니다.
+
+새 수파베이스 프로젝트를 쓴다면 `Authentication → Sign In / Providers` 에서
+**`Confirm Email` 을 꺼 두세요.** 켜져 있으면 가입할 때마다 메일함을 열어
+링크를 눌러야 합니다. (실제 배포 때는 다시 켜야 합니다.)
 
 ## 구조
 
@@ -28,8 +47,11 @@ Node 20 이상이 필요합니다.
 | `app/page.tsx` | 홈페이지. 구역들을 위에서 아래로 조립하는 진입점 |
 | `app/layout.tsx` | 글꼴, 메타데이터, `lang="ko"` |
 | `app/globals.css` | 디자인 시스템 전체 — 숯불 팔레트, 여백, 반응형 분기 |
+| `app/actions/auth.ts` | 로그인·가입·로그아웃 서버 액션 |
 | `components/` | 구역별 마크업 (히어로·기능·쇼케이스·요금제·FAQ·꼬리말) |
+| `lib/domain/`, `lib/usecase/`, `lib/adapter/` | 규칙 → 흐름 → 바깥세상. `ARCHITECTURE.md` 참고 |
 | `lib/site-content.ts` | 문구·요금·FAQ. **카피만 고칠 거면 이 파일만** |
+| `proxy.ts` | 요청마다 로그인 표를 갱신. Next.js 16 에서 `middleware.ts` 의 새 이름 |
 | `design/` | 원본 디자인 시안과 로고 |
 
 색이나 여백은 `app/globals.css`, 글은 `lib/site-content.ts`, 배치는
