@@ -1,5 +1,8 @@
 # 버셀 배포 절차
 
+**배포 완료: <https://cookpilotv2.vercel.app> (2026-08-24)**
+
+아래는 그때 밟은 순서이자, 새 환경에 다시 올릴 때 쓰는 절차다.
 CookPilot 을 버셀에 올리는 순서다. **각 단계에 "누가 하는 일"** 을 적어 두었다.
 
 | 표시 | 뜻 |
@@ -28,7 +31,7 @@ CookPilot 을 버셀에 올리는 순서다. **각 단계에 "누가 하는 일"
 
 ---
 
-## 1. 버셀 가입 🧑
+## 1. 버셀 가입 ✅
 
 <https://vercel.com/signup> → **Continue with GitHub**
 
@@ -36,7 +39,7 @@ GitHub 으로 가입해야 저장소를 바로 가져올 수 있다. Hobby(무�
 
 ---
 
-## 2. 프로젝트 가져오기 🧑
+## 2. 프로젝트 가져오기 ✅
 
 1. **Add New… → Project**
 2. `Van-Sihan/CookPilot.v2` 옆의 **Import**
@@ -47,7 +50,7 @@ GitHub 으로 가입해야 저장소를 바로 가져올 수 있다. Hobby(무�
 
 ---
 
-## 3. 환경 변수 넣기 🧑
+## 3. 환경 변수 넣기 ✅
 
 Import 화면의 **Environment Variables** 를 펼치고 아래를 넣는다.
 값은 지금 컴퓨터의 `.env.local` 에 있다.
@@ -79,11 +82,11 @@ Import 화면의 **Environment Variables** 를 펼치고 아래를 넣는다.
 
 ---
 
-## 4. 첫 배포 🧑
+## 4. 첫 배포 ✅
 
 **Deploy** 를 누른다. 2~3분 걸린다.
 
-끝나면 `cookpilot-v2-xxxx.vercel.app` 같은 주소가 나온다. **이 주소를 적어 둔다.**
+끝나면 주소가 나온다. 이번에는 `cookpilotv2.vercel.app` 이었다.
 
 > 마이그레이션(5단계)은 끝나 있으므로 표는 이미 준비돼 있다. 다만 **가입 확인
 > 메일 링크가 아직 `localhost` 로 간다.** 6단계를 해야 로그인 흐름이 완성된다.
@@ -147,7 +150,7 @@ where not tgisinternal
 
 ---
 
-## 6. Supabase Auth 주소 바꾸기 🧑
+## 6. Supabase Auth 주소 바꾸기 ✅
 
 **이 단계를 빠뜨리면 가입 확인 메일의 링크가 `localhost:3000` 으로 간다.**
 
@@ -155,21 +158,21 @@ Supabase 대시보드 → **Authentication → URL Configuration**
 
 | 항목 | 값 |
 | --- | --- |
-| Site URL | `https://<4단계에서 받은 주소>` |
-| Redirect URLs | `https://<4단계 주소>/**` 를 추가 |
+| Site URL | `https://cookpilotv2.vercel.app` |
+| Redirect URLs | `https://cookpilotv2.vercel.app/**` 를 추가 |
 
 코드에 `emailRedirectTo` 를 지정하지 않았기 때문에 여기 값이 그대로 쓰인다
 (`lib/adapter/supabase-auth-gateway.ts`).
 
 ---
 
-## 7. 배포 주소 알려 주고 재배포 🧑
+## 7. 배포 주소 알려 주고 재배포 ✅
 
 버셀 → Project → **Settings → Environment Variables**
 
 | Name | Value |
 | --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | `https://<4단계 주소>` |
+| `NEXT_PUBLIC_SITE_URL` | `https://cookpilotv2.vercel.app` |
 
 넣은 뒤 **Deployments → 맨 위 → ⋯ → Redeploy**.
 
@@ -179,7 +182,7 @@ Supabase 대시보드 → **Authentication → URL Configuration**
 
 ---
 
-## 8. Pinecone 인덱스와 후기 색인 🧑
+## 8. Pinecone 인덱스와 후기 색인 ✅
 
 **8-1. 인덱스 확인** — Pinecone 콘솔에서 `PINECONE_HOST` 가 가리키는 인덱스가
 살아 있는지 본다. 무료 플랜은 오래 안 쓰면 잠들 수 있다.
@@ -187,21 +190,26 @@ Supabase 대시보드 → **Authentication → URL Configuration**
 **8-2. 후기 색인 1회 실행** — 배포한 뒤 한 번만 돌린다.
 
 ```bash
-curl -X POST https://<배포 주소>/api/kitchen/index
+curl -X POST https://cookpilotv2.vercel.app/api/kitchen/index
 ```
 
 `{"ok":true,"count":...}` 가 나오면 성공이다.
 **이걸 안 돌리면 AI 요리 상담이 늘 "관련 후기를 찾지 못했습니다" 로 답한다.**
 
+> **이번에는 돌릴 필요가 없었다.** 파인콘 인덱스는 배포와 무관하게 남아 있는
+> 저장소라, 로컬에서 올려 둔 색인이 그대로 살아 있었다. 배포 직후
+> `GET /api/kitchen/index?q=김치찌개` 에 결과 5건이 나오는 것으로 확인했다.
+> 새 파인콘 인덱스를 쓸 때만 돌리면 된다.
+
 몇 건이 걸리는지만 보고 싶으면:
 
 ```bash
-curl "https://<배포 주소>/api/kitchen/index?q=김치찌개"
+curl "https://cookpilotv2.vercel.app/api/kitchen/index?q=김치찌개"
 ```
 
 ---
 
-## 9. 배포 확인 🧑
+## 9. 배포 확인 ✅
 
 | 확인할 것 | 방법 | 안 되면 |
 | --- | --- | --- |
@@ -213,6 +221,24 @@ curl "https://<배포 주소>/api/kitchen/index?q=김치찌개"
 | 프로필 이미지 | `/account` 에서 올려 보기 | `avatars` 버킷 |
 | AI 상담 | `/ask` 에 질문 | 8단계 색인 |
 
+### 2026-08-24 점검 결과
+
+| 항목 | 결과 |
+| --- | --- |
+| 화면 14개 (`/` `/login` `/signup` `/start` `/start/model` `/community` `/pick` `/shop` `/cook` `/cook/done` `/shelf` `/ask` `/account` `/write`) | 전부 200 |
+| 접근 권한 검사 | `/write` · `/account` · `/posts/[id]/edit` 모두 307 |
+| 커뮤니티 목록 | 예시 글 16편이 탭 4개(기본 5 · recent 4 · brand 4 · trend 4)에 나뉘어 표시 |
+| 파인콘 검색 | `GET /api/kitchen/index?q=김치찌개` → 결과 5건 |
+| 회원가입 · 메일 확인 | 정상 (Confirm Email 켬) |
+
+---
+
+## 알아 둘 것 — 링크 미리보기에 이미지가 없다
+
+`app/layout.tsx` 의 `openGraph` 에 `images` 가 설정돼 있지 않아
+카톡·슬랙에 링크를 붙이면 **제목과 설명만 나오고 그림은 안 나온다.**
+`metadataBase` 설정은 되어 있으므로 이미지를 넣는 순간 동작한다.
+
 ---
 
 ## 나에게(클로드) 알려 주면 처리할 것 🤖
@@ -221,7 +247,7 @@ curl "https://<배포 주소>/api/kitchen/index?q=김치찌개"
 
 | 무엇 | 왜 필요한가 | 알려 주는 예 |
 | --- | --- | --- |
-| **배포 주소** | 배포 후 실제로 도는지 점검하고, 문서의 `<배포 주소>` 자리를 채운다 | `cookpilot-v2.vercel.app` |
+| **배포 주소** | 배포 후 실제로 도는지 점검하고, 문서의 `cookpilotv2.vercel.app` 자리를 채운다 | `cookpilot-v2.vercel.app` |
 | **Supabase 리전** | 버셀 함수 리전을 가깝게 고정해 응답을 줄인다 (`vercel.json`) | `Northeast Asia (Seoul)` |
 | **적용한 마이그레이션** | 5단계에서 어디까지 됐는지 | "3번째까지 적용됨" |
 | **막힌 화면과 오류 문구** | 원인을 짚는다 | 콘솔 · 버셀 로그 원문 |
