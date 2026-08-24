@@ -272,7 +272,8 @@ CHECKS = [
 #  생성/쓰기 위치, 읽기 위치, 삭제 위치, 관련모듈, 관련기능, 근거)
 DATA = [
  ("D1-1", "localStorage", "cookpilot.gemini-key", "Gemini API Key",
-  "요리 · 상담 기능이 사용하는 외부 API 인증 값. 서버로 전송하지 않는다",
+  "요리 · 상담 기능이 사용하는 외부 API 인증 값. CookPilot 서버에 저장하지 않는다 "
+  "(FN11 은 요청 시에만 경유)",
   "Key 문자열 1건",
   "lib/adapter/browser-api-key-store.ts:F4",
   "lib/usecase/enter-with-api-key.ts:F7",
