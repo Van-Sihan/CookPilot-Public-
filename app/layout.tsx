@@ -122,10 +122,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // 휴대폰 브라우저 주소창까지 배경과 같은 검정으로 물들인다
-  themeColor: "#0B0A09",
-  // 어두운 화면으로만 만든 사이트라고 알려 줘서 브라우저가 색을 뒤집지 않게 한다
-  colorScheme: "dark",
+  // 휴대폰 브라우저 주소창까지 배경과 같은 종이색으로 물들인다
+  themeColor: "#FBF7F1",
+  // 밝은 화면으로만 만든 사이트라고 알려 줘서 브라우저가 색을 뒤집지 않게 한다
+  colorScheme: "light",
 };
 
 // [F1][함수] RootLayout({children}): 모든 화면을 감싸는 바깥 껍데기

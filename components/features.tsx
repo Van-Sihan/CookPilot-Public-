@@ -29,14 +29,10 @@ export function Features() {
     // 위쪽 메뉴의 "기능" 을 누르면 이 이름표를 찾아 내려온다
     <section className="features glow" id="features">
       <div className="wrap">
-        {/* 작은 글씨·제목·설명을 묶은 구역 머리 */}
+        {/* 작은 글씨와 제목을 묶은 구역 머리 */}
         <div className="sec-head">
           <span className="eyebrow hot">기능</span>
-          <h2>주방에서 실제로 벌어지는 일들</h2>
-          <p>
-            있어 보이는 기능이 아니라, 요리하다 손이 멈추는 순간만 골라
-            담았습니다.
-          </p>
+          <h2>요리하는 순간을 위해 꼭 필요한 기능만</h2>
         </div>
         {/* 칸을 바둑판처럼 늘어놓는다. 몇 줄로 놓을지는 화면 너비를 보고 CSS 가 정한다 */}
         <div className="feats">

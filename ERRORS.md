@@ -16,6 +16,59 @@
 
 ---
 
+## package.json 에 적혀 있어도 npm install 을 안 하면 모듈을 못 찾는다
+
+**증상**
+
+```
+⨯ ./proxy.ts:22:1
+Error: Module not found: Can't resolve '@supabase/ssr'
+  20 |  */
+  21 |
+> 22 | import { createServerClient } from "@supabase/ssr";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  23 | import { NextResponse, type NextRequest } from "next/server";
+```
+
+**언제**
+
+랜딩 문구를 고치고 `npm run dev` 로 화면을 확인하려던 참이었다. 서버는 떴는데
+(`✓ Ready in 288ms`) 페이지를 열자마자 이 오류가 났다.
+
+**왜 났나**
+
+`package.json` 의 `dependencies` 는 **무엇을 쓰겠다는 선언**일 뿐, 그 자체로
+코드를 가져다 놓지 않는다. 실제 코드는 `npm install` 이 `node_modules/` 에
+내려받아 놓아야 있다. 확인해 보니 `@supabase/ssr` 도 `@supabase/supabase-js` 도
+`^0.12.4` · `^2.112.3` 로 적혀 있는데 `node_modules/@supabase` 폴더 자체가
+없었다.
+
+`node_modules/` 는 `.gitignore` 로 git 에 올리지 않는다. 용량이 크고 기계마다
+(윈도우/맥, CPU 종류) 받아야 할 파일이 다르기 때문이다. 그래서 저장소를 새로
+받았거나 다른 기계에서 이어 작업할 때, 또는 남이 의존성을 추가한 커밋을 당겨
+왔을 때는 `package.json` 만 최신이고 `node_modules/` 는 옛날인 상태가 된다.
+이번이 그 경우다.
+
+`proxy.ts` 는 요청마다 먼저 지나가는 자리라 한 번 깨지면 화면이 통째로 안 뜬다.
+문구만 고쳤는데 페이지 전체가 안 나오니 내 수정이 문제인 줄 알기 쉽지만, 오류가
+가리킨 줄은 내가 건드린 적 없는 파일이었다. **오류 메시지가 가리키는 파일이 내가
+고친 파일이 아니면 원인은 대개 코드가 아니라 환경 쪽**이다.
+
+**어떻게 고쳤나**
+
+`npm install` 한 번. 135 개가 새로 깔리면서 `node_modules/@supabase/ssr` 이
+생겼고 오류가 사라졌다.
+
+**배운 것**
+
+- `Module not found: Can't resolve 'X'` 를 만나면 순서대로 본다.
+  ① `package.json` 에 `X` 가 있나 → ② `node_modules/X` 가 실제로 있나
+  → ③ 이름을 잘못 적지 않았나. 이번은 ② 였다.
+- ① 은 있는데 ② 가 없으면 답은 언제나 `npm install` 이다.
+- ① 부터 없으면 그때는 `npm install X` 로 새로 받아야 한다. 둘은 다른 상황이다.
+- git 에서 무언가를 당겨 온 뒤 처음 `npm run dev` 를 돌릴 때는 `npm install` 을
+  먼저 해 두면 이 오류를 아예 안 만난다.
+
 ## 고정폭 글꼴만 지정하면 한글이 두부(□)로 나온다
 
 **증상**
