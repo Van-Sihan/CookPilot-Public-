@@ -2,6 +2,11 @@
   "name": "cookpilot.v2",
   "version": "0.1.0",
   "private": true,
+  "description": "말로 따라 하는 AI 요리 비서 — 손은 요리에, 레시피는 쿡파일럿에",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
