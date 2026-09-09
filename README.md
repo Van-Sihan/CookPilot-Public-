@@ -5,7 +5,7 @@
 재료가 묻은 손으로 화면을 만질 일이 없습니다. 다음 단계도, 분량도, 타이머도
 음성으로 부릅니다.
 
-> **배포 주소**: (배포 후 채웁니다)
+> **배포 주소**: <https://cookpilot-eight.vercel.app>
 
 ![쿡파일럿 소개 화면](docs/screenshots/home.jpg)
 
